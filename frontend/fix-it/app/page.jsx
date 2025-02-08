@@ -17,7 +17,7 @@ const HomePage = () => {
           Welcome to Fix-IT
         </h1>
         <p className="text-2xl text-gray-600">
-          {`Be Best at what you suck!`}  {/* Placeholder for motto */}
+          {`Be best at what you suck!`}  {/* Placeholder for motto */}
         </p>
         <button
           onClick={handleGetStarted}
