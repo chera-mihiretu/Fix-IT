@@ -58,12 +58,6 @@ const SignInPage = () => {
           >
             Sign In with Google
           </button>
-          <button
-            onClick={() => handleSocialSignIn("Facebook")}
-            className="w-full py-3 bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-800 transition duration-300"
-          >
-            Sign In with Facebook
-          </button>
         </div>
       </div>
     </div>
