@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fix-it/domain"
+	"fix-it/infrastructure"
 	repository "fix-it/repositories"
 )
 
@@ -39,10 +40,14 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	}
 
 	if storedUser.Password != user.Password {
-		return "", errors.New("No Such User")
+		return "", errors.New("no such user")
 	}
 
-	// Generate token (this is just a placeholder, implement your own token generation logic)
-	token := "generated-jwt-token"
+	// Generate token
+	token, err := infrastructure.GenerateJWT(user.Username, user.Username)
+
+	if err != nil {
+		return "", err
+	}
 	return token, nil
 }

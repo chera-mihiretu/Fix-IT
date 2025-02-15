@@ -12,4 +12,5 @@ func main() {
 	if err != nil {
 		log.Fatal("could not load env file")
 	}
+
 }
