@@ -4,7 +4,10 @@ go 1.22.10
 
 require go.mongodb.org/mongo-driver v1.17.2
 
+require github.com/joho/godotenv v1.5.1 // indirect
+
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect

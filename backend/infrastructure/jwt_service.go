@@ -1,12 +1,12 @@
 package infrastructure
 
 import (
+	"errors"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
-
-var jwtKey = []byte("task_manager_jwt_secret_key")
 
 type Claims struct {
 	Email    string `json:"username"`
@@ -24,6 +24,11 @@ func GenerateJWT(username string, email string) (string, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	value, exists := os.LookupEnv("JWT_SECRET_KEY")
+	if !exists {
+		return "", errors.New("could not found jwt_secret_key, it does not exist")
+	}
+	jwtKey := []byte(value)
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
 		return "", err
