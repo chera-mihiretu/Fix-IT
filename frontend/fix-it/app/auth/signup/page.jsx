@@ -15,9 +15,20 @@ const SignUp = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+ 
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Sign Up Data:", formData);
+    try {
+      const response = await axios.post("http://localhost:8080/register", formData, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      });
+      console.log("Sign Up Data:", response.data);
+    } catch (error) {
+      console.error("There was a problem with the axios operation:", error);
+    }
   };
 
   return (
