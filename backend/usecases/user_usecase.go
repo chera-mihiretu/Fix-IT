@@ -1,11 +1,11 @@
-package usescases
+package usecases
 
 import (
 	"context"
 	"errors"
 	"fix-it/domain"
 	"fix-it/infrastructure"
-	repository "fix-it/repositories"
+	repository "fix-it/repository"
 )
 
 type UserUsecase interface {
@@ -27,7 +27,7 @@ func (u *userUsecase) Register(ctx context.Context, user domain.User) error {
 	// Add user registration logic here
 	err := u.UserRepository.CreateUser(ctx, user)
 	if err != nil {
-		return err
+		return errors.New("usecases/user_usecase.go: Register" + err.Error())
 	}
 	return nil
 }
@@ -36,18 +36,17 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	// Add user login logic here
 	storedUser, err := u.UserRepository.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", err
+		return "", errors.New("usecases/user_usecase.go: Login" + err.Error())
 	}
 
 	if storedUser.Password != user.Password {
-		return "", errors.New("no such user")
+		return "", errors.New("usecases/user_usecase.go: Login - no such user")
 	}
 
 	// Generate token
 	token, err := infrastructure.GenerateJWT(user.Username, user.Username)
-
 	if err != nil {
-		return "", err
+		return "", errors.New("usecases/user_usecase.go: Login" + err.Error())
 	}
 	return token, nil
 }

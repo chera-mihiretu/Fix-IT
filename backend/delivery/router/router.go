@@ -1,9 +1,18 @@
 package router
 
-import "github.com/gin-gonic/gin"
+import (
+	"fix-it/delivery/controller"
 
-func SetUpRouter(usercontroller) *gin.Engine {
+	"github.com/gin-gonic/gin"
+)
 
-	router := gin.Default()
+func SetUpRouter(usercontroller *controller.UserController) *gin.Engine {
+
+	router := gin.New()
+
+	router.POST("/register", usercontroller.Register)
+	router.POST("/login", usercontroller.Login)
+
+	return router
 
 }
