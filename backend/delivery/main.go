@@ -33,7 +33,7 @@ func main() {
 		}
 	}(client)
 
-	userdatabse := client.Database("user")
+	userdatabse := client.Database("fix-it")
 
 	userRepo := repository.NewUserRepository(userdatabse)
 

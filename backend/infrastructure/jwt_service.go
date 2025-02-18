@@ -57,3 +57,32 @@ func GenerateToken(email string) (string, error) {
 
 	return tokenString, nil
 }
+
+func VerificationTokenValidate(tokenString string) (string, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		secretKey, exist := os.LookupEnv("JWT_SECRET_KEY")
+
+		if !exist {
+			return nil, errors.New("infrastructure/jwt_service: " + "could not found jwt_secret_key, it does not exist")
+		}
+		return []byte(secretKey), nil
+
+	})
+
+	if err != nil {
+		return "", errors.New("infrastructure/jwt_service: " + err.Error())
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		expiration := claims["exp"].(float64)
+
+		if time.Now().Unix() > int64(expiration) {
+			return "", errors.New("infrastructure/jwt_service: " + "token is expired")
+		}
+		email := claims["email"].(string)
+		return email, nil
+	}
+
+	return "", errors.New("infrastructure/jwt_service: " + "invalid token")
+
+}

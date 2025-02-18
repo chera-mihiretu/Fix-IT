@@ -12,6 +12,7 @@ func SetUpRouter(usercontroller *controller.UserController) *gin.Engine {
 
 	router.POST("/register", usercontroller.Register)
 	router.POST("/login", usercontroller.Login)
+	router.GET("/verify", usercontroller.Verify)
 
 	return router
 

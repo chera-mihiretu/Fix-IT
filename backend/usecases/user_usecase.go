@@ -11,6 +11,7 @@ import (
 type UserUsecase interface {
 	Register(ctx context.Context, user domain.User) error
 	Login(ctx context.Context, user domain.User) (string, error)
+	Verify(ctx context.Context, token string) error
 }
 
 type userUsecase struct {
@@ -23,11 +24,28 @@ func NewUseCase(repo repository.UserRepository) UserUsecase {
 	}
 }
 
+func (u *userUsecase) Verify(ctx context.Context, token string) error {
+
+	email, err := infrastructure.VerificationTokenValidate(token)
+
+	if err != nil {
+		return errors.New("usecases/user_usecase.go: Verify " + err.Error())
+	}
+
+	err = u.UserRepository.VerifyUser(ctx, email, token)
+
+	if err != nil {
+		return errors.New("usecases/user_usecase.go: Verify " + err.Error())
+	}
+
+	return nil
+}
+
 func (u *userUsecase) Register(ctx context.Context, user domain.User) error {
 	// Add user registration logic here
 	err := u.UserRepository.CreateUser(ctx, user)
 	if err != nil {
-		return errors.New("usecases/user_usecase.go: Register" + err.Error())
+		return errors.New("usecases/user_usecase.go: Register " + err.Error())
 	}
 	return nil
 }
@@ -36,7 +54,7 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	// Add user login logic here
 	storedUser, err := u.UserRepository.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", errors.New("usecases/user_usecase.go: Login" + err.Error())
+		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}
 
 	if storedUser.Password != user.Password {
@@ -46,7 +64,7 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	// Generate token
 	token, err := infrastructure.GenerateJWT(user.Username, user.Username)
 	if err != nil {
-		return "", errors.New("usecases/user_usecase.go: Login" + err.Error())
+		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}
 	return token, nil
 }

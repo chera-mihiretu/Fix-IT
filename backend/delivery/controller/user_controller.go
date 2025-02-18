@@ -20,6 +20,19 @@ func NewUserController(userusecase usescases.UserUsecase) *UserController {
 	}
 }
 
+func (u *UserController) Verify(ctx *gin.Context) {
+	token := ctx.DefaultQuery("token", "")
+
+	err := u.userUsecase.Verify(ctx, token)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "user verified"})
+}
+
 func (u *UserController) Register(ctx *gin.Context) {
 	var user domain.User
 
@@ -33,6 +46,14 @@ func (u *UserController) Register(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	hashedPassword, err := infrastructure.HashPassword(user.Password)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user.Password = hashedPassword
 
 	err = u.userUsecase.Register(ctx, user)
 
