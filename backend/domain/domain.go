@@ -14,11 +14,10 @@ type User struct {
 }
 
 type PDF struct {
-	ID       int    `json:"id"`
-	UserID   int    `json:"user_id"`
-	Title    string `json:"title"`
-	Filepath string `json:"filepath"`
-	Created  string `json:"created"`
+	ID      int    `json:"id"`
+	Title   string `json:"title"`
+	DropBox string `json:"dropbox"`
+	Created string `json:"created"`
 }
 
 type Question struct {

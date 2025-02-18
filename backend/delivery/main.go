@@ -33,15 +33,17 @@ func main() {
 		}
 	}(client)
 
-	userdatabse := client.Database("fix-it")
+	my_database := client.Database("fix-it")
 
-	userRepo := repository.NewUserRepository(userdatabse)
-
+	userRepo := repository.NewUserRepository(my_database)
+	actionRepo := repository.NewActionRepository(my_database)
 	userusecase := usecases.NewUseCase(userRepo)
+	actionusecase := usecases.NewActionUsecase(actionRepo)
 
 	usercontroller := controller.NewUserController(userusecase)
+	actioncontroller := controller.NewActionController(actionusecase)
 
-	router := router.SetUpRouter(usercontroller)
+	router := router.SetUpRouter(usercontroller, actioncontroller)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("could not run server: %v", err)

@@ -14,7 +14,7 @@ func SendEmail(to, token string) error {
 
 	subject := "Email Verification"
 
-	body := fmt.Sprintf("Click on the following link to verify your account: http://localhost:8080/verify?token=%s", token)
+	body := fmt.Sprintf("Click on the following link to verify your account: http://localhost:8080/u/verify?token=%s", token)
 
 	smtpHost := "smtp.gmail.com"
 	smtpPort := "587"
