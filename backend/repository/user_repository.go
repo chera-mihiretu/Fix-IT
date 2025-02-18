@@ -16,6 +16,7 @@ type UserRepository interface {
 	VerifyUser(ctx context.Context, email, token string) error
 	IsUserExist(ctx context.Context, username string) (bool, error)
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	GetUserByUsername(ctx context.Context, username string) (domain.User, error)
 }
 
 type userRepository struct {
@@ -122,7 +123,22 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (doma
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return domain.User{}, nil
+			return domain.User{}, errors.New("no such user")
+		}
+		return domain.User{}, errors.New("repository/user_repository: " + err.Error())
+	}
+	return user, nil
+}
+
+func (r *userRepository) GetUserByUsername(ctx context.Context, username string) (domain.User, error) {
+	var user domain.User
+	filter := bson.M{"username": username}
+
+	err := r.users.FindOne(ctx, filter).Decode(&user)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return domain.User{}, errors.New("no such user")
 		}
 		return domain.User{}, errors.New("repository/user_repository: " + err.Error())
 	}

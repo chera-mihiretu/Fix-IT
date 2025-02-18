@@ -51,18 +51,33 @@ func (u *userUsecase) Register(ctx context.Context, user domain.User) error {
 }
 
 func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, error) {
-	// Add user login logic here
-	storedUser, err := u.UserRepository.GetUserByEmail(ctx, user.Email)
+
+	err := infrastructure.SignInValidateUser(&user)
 	if err != nil {
 		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}
 
-	if storedUser.Password != user.Password {
+	var storedUser domain.User
+	var u_error error
+
+	if user.Email == "" {
+		storedUser, u_error = u.UserRepository.GetUserByUsername(ctx, user.Username)
+	} else {
+		storedUser, u_error = u.UserRepository.GetUserByEmail(ctx, user.Email)
+	}
+
+	if u_error != nil {
+		return "", errors.New("usecases/user_usecase.go: Login " + u_error.Error())
+	}
+
+	equal := infrastructure.ComparePassword(storedUser.Password, user.Password)
+
+	if !equal {
 		return "", errors.New("usecases/user_usecase.go: Login - no such user")
 	}
 
 	// Generate token
-	token, err := infrastructure.GenerateJWT(user.Username, user.Username)
+	token, err := infrastructure.GenerateJWT(user.Username, user.Email)
 	if err != nil {
 		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}

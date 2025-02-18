@@ -4,7 +4,6 @@ import (
 	"fix-it/domain"
 	"fix-it/infrastructure"
 	usescases "fix-it/usecases"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,8 +72,6 @@ func (u *UserController) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	fmt.Println(user)
 
 	token, err := u.userUsecase.Login(ctx, user)
 
