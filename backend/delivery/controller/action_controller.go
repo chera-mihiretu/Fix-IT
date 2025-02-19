@@ -4,7 +4,6 @@ import (
 	"fix-it/domain"
 	"fix-it/infrastructure"
 	"fix-it/usecases"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -42,47 +41,32 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 	defer file.Close()
 
 	filename := infrastructure.GetUniqueFileName()
-
-	drop_box_url := "https://content.dropboxapi.com/2/files/upload"
-
-	req, err := http.NewRequest("POST", drop_box_url, file)
-
-	if err != nil {
-		ctx.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
 	drop_token, exist := os.LookupEnv("DROPBOX_TOKEN")
-
 	if !exist {
 		ctx.JSON(400, gin.H{"error": "No dropbox token found"})
 		return
 	}
 
-	req.Header.Set("Authorization", "Bearer "+drop_token)
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("Dropbox-API-Arg", "{\"path\": \"/"+filename+"\"}")
-
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
+	err = a.actionUsecase.UploadToDropBox(ctx, file, filename, drop_token)
 
 	if err != nil {
-		ctx.JSON(400, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	defer resp.Body.Close()
+	link, err := a.actionUsecase.GetDropLink(ctx, filename)
 
-	body, err := io.ReadAll(resp.Body)
+	processedText, err := a.actionUsecase.ProcessPDF(ctx, link)
 
 	if err != nil {
-		ctx.JSON(400, gin.H{"error": err.Error()})
-		return
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
+	ctx.JSON(200, gin.H{"processed_text": processedText})
 
-	if resp.StatusCode != http.StatusOK {
-		ctx.JSON(400, gin.H{"error": string(body)})
+	return
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
