@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"fix-it/domain"
-	"fix-it/infrastructure"
-	"fix-it/usecases"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/infrastructure"
+	"github/chera/fix-it/usecases"
 	"net/http"
 	"os"
 	"time"

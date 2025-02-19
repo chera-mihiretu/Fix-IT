@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fix-it/domain"
-	"fix-it/infrastructure"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/infrastructure"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,16 +82,12 @@ func (r *actionRepository) ProcessPDF(ctx context.Context, link string) (string,
 }
 
 func (r *actionRepository) UploadForGemini(ctx context.Context, processedText string) error {
-	upsert := true
-
-	filter := bson.M{"processedText": processedText}
-	update := bson.M{"$set": bson.M{"processedText": processedText}}
-
-	_, err := r.UserBooks.UpdateOne(ctx, filter, update, &options.UpdateOptions{Upsert: &upsert})
-
-	if err != nil {
-		return errors.New("repository/action_repository: " + err.Error())
+	geminiToken, exist := os.LookupEnv("GEM_API")
+	if !exist {
+		return errors.New("usecases/action_usecase.go: UploadForGemini " + "No Gemini token found")
 	}
+
+	service, err := generative
 
 	return nil
 }

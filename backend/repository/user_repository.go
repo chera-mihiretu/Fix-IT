@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"fix-it/domain"
-	"fix-it/infrastructure"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/infrastructure"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"

@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"fix-it/domain"
-	"fix-it/infrastructure"
-	usescases "fix-it/usecases"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/infrastructure"
+	usescases "github/chera/fix-it/usecases"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

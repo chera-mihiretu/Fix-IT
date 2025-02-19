@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"fix-it/delivery/controller"
-	"fix-it/delivery/router"
-	"fix-it/infrastructure"
-	"fix-it/repository"
-	"fix-it/usecases"
+	"github/chera/fix-it/delivery/controller"
+	"github/chera/fix-it/delivery/router"
+	"github/chera/fix-it/infrastructure"
+	"github/chera/fix-it/repository"
+	"github/chera/fix-it/usecases"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -33,7 +33,7 @@ func main() {
 		}
 	}(client)
 
-	my_database := client.Database("fix-it")
+	my_database := client.Database("github/chera/fix-it")
 
 	userRepo := repository.NewUserRepository(my_database)
 	actionRepo := repository.NewActionRepository(my_database)

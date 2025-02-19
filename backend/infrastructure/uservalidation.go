@@ -2,7 +2,7 @@ package infrastructure
 
 import (
 	"errors"
-	"fix-it/domain"
+	"github/chera/fix-it/domain"
 	"regexp"
 )
 

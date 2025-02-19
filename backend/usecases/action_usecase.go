@@ -3,11 +3,12 @@ package usecases
 import (
 	"context"
 	"errors"
-	"fix-it/domain"
-	"fix-it/repository"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/repository"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 )
 
 type ActionUsecase interface {
@@ -47,6 +48,8 @@ func (a *actionUsecase) ProcessPDF(ctx context.Context, link string) (string, er
 }
 
 func (a *actionUsecase) UploadForGemini(ctx context.Context, processedText string) error {
+
+	geminiToken, exist := os.LookupEnv("GEMINI_TOKEN")
 
 	return nil
 }

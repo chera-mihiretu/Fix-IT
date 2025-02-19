@@ -3,9 +3,9 @@ package usecases
 import (
 	"context"
 	"errors"
-	"fix-it/domain"
-	"fix-it/infrastructure"
-	repository "fix-it/repository"
+	"github/chera/fix-it/domain"
+	"github/chera/fix-it/infrastructure"
+	repository "github/chera/fix-it/repository"
 )
 
 type UserUsecase interface {

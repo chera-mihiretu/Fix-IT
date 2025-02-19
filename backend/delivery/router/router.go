@@ -1,8 +1,8 @@
 package router
 
 import (
-	"fix-it/delivery/controller"
-	"fix-it/infrastructure"
+	"github/chera/fix-it/delivery/controller"
+	"github/chera/fix-it/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )
