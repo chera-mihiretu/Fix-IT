@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"fmt"
 	"github/chera/fix-it/domain"
 	"strings"
 )
@@ -48,4 +49,15 @@ func ParseQuestions(input string) []domain.Question {
 		}
 	}
 	return questions
+}
+
+func ParseAnswer(answers []domain.Answer) string {
+	result := ""
+	for _, ans := range answers {
+
+		result += fmt.Sprintf("%d, %s\n", ans.QuestionNO, ans.Answer)
+
+	}
+
+	return result
 }

@@ -7,12 +7,12 @@ import (
 )
 
 type User struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Username string             `bson:"username"`
-	Password string             `bson:"password"`
-	Email    string             `bson:"email"`
-	Age      int                `bson:"age"`
-	Academic string             `bson:"academic"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Username string             `bson:"username" json:"username"`
+	Password string             `bson:"password" json:"password"`
+	Email    string             `bson:"email" json:"email"`
+	Age      int                `bson:"age" json:"age"`
+	Academic string             `bson:"academic" json:"academic"`
 }
 
 type PDF struct {
@@ -60,4 +60,10 @@ type Question struct {
 type Quiz struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	Questions []Question         `bson:"questions"`
+	CreatedBy string             `bson:"created_by"`
+}
+
+type Answer struct {
+	QuestionNO int    `json:"question_no" bson:"question_no"`
+	Answer     string `json:"answer" bson:"answer"`
 }

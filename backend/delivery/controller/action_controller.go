@@ -73,7 +73,7 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 		return
 	}
 
-	questionsID, err := a.actionUsecase.UploadQuestions(ctx, questions)
+	questionsID, err := a.actionUsecase.UploadQuestions(ctx, questions, userID)
 
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": err.Error()})
@@ -118,5 +118,32 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, gin.H{"questions": questions})
+
+}
+
+func (a *ActionController) QuizAnswer(ctx *gin.Context) {
+
+	quizID := ctx.Param("id")
+	userID := ctx.Get("user_id")
+
+	var answers []domain.Answer
+
+	if err := ctx.ShouldBindJSON(&answers); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	score, err := a.actionUsecase.QuizAnswer(ctx, quizID, userID, answers)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if score != 20 {
+
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"score": "Good Job you answer all of it"})
 
 }

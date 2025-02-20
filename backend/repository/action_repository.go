@@ -14,15 +14,17 @@ import (
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ActionRepository interface {
 	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
-	UploadQuestions(ctx context.Context, questions []domain.Question) (string, error)
+	UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error)
 	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
 	UploadSection(ctx context.Context, section domain.Section) error
+	QuizAnswer(ctx context.Context, quizID string, userID string, answer []domain.Answer) (int, error)
 
 	ProcessPDF(ctx context.Context, link string) (string, error)
 	UploadForGemini(processedText string) ([]domain.ConversationTurn, error)
@@ -48,6 +50,33 @@ func NewActionRepository(db *mongo.Database, model *genai.GenerativeModel, ctx c
 		GeminiContext:    ctx,
 		GeminiModel:      model,
 	}
+}
+
+func (r *actionRepository) QuizAnswer(ctx context.Context, quizID string, userID string, answer []domain.Answer) (int, error) {
+	filters := bson.M{"_id": quizID, "CreatedBy": userID}
+	var score int = 0
+
+	var quizes domain.Quiz
+	err := r.UserQuiz.FindOne(ctx, filters).Decode(&quizes)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+
+			return 0, errors.New("repository/action_repository: " + "Invalid Quiz ID")
+		}
+		return 0, errors.New("repository/action_repository: " + err.Error())
+	}
+
+	number := 0
+
+	for index, quiz := range quizes.Questions {
+		if quiz.Answer == answer[index].Answer {
+			score++
+		}
+
+	}
+
+	return number, nil
 }
 
 func (r *actionRepository) UploadSection(ctx context.Context, section domain.Section) error {
@@ -76,10 +105,11 @@ func (r *actionRepository) UploadConversation(ctx context.Context, conversation 
 	return insertedID.Hex(), nil
 }
 
-func (r *actionRepository) UploadQuestions(ctx context.Context, questions []domain.Question) (string, error) {
+func (r *actionRepository) UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error) {
 
 	var new_quiz domain.Quiz
 	new_quiz.Questions = questions
+	new_quiz.CreatedBy = userID
 
 	questionID, err := r.UserQuiz.InsertOne(ctx, new_quiz)
 

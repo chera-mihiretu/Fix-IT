@@ -12,9 +12,10 @@ import (
 
 type ActionUsecase interface {
 	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
-	UploadQuestions(ctx context.Context, questions []domain.Question) (string, error)
+	UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error)
 	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
 	UploadSection(ctx context.Context, section domain.Section) error
+	QuizAnswer(ctx context.Context, quiz_id string, userID string, answers []domain.Answer) (int, error)
 
 	ProcessPDF(ctx context.Context, link string) (string, error)
 	UploadForGemini(processed_text string) ([]domain.Question, []domain.ConversationTurn, error)
@@ -30,6 +31,14 @@ func NewActionUsecase(repo repository.ActionRepository) ActionUsecase {
 	return &actionUsecase{
 		ActionRepository: repo,
 	}
+}
+
+func (a *actionUsecase) QuizAnswer(ctx context.Context, quiz_id string, userID string, answers []domain.Answer) (int, error) {
+	score, err := a.ActionRepository.QuizAnswer(ctx, quiz_id, userID, answers)
+	if err != nil {
+		return 0, errors.New("usecases/action_usecase.go: QuizAnswer " + err.Error())
+	}
+	return score, nil
 }
 
 func (a *actionUsecase) UploadSection(ctx context.Context, section domain.Section) error {
@@ -48,8 +57,8 @@ func (a *actionUsecase) UploadConversation(ctx context.Context, conversation []d
 	return conversationId, nil
 }
 
-func (a *actionUsecase) UploadQuestions(ctx context.Context, questions []domain.Question) (string, error) {
-	questionId, err := a.ActionRepository.UploadQuestions(ctx, questions)
+func (a *actionUsecase) UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error) {
+	questionId, err := a.ActionRepository.UploadQuestions(ctx, questions, userID)
 	if err != nil {
 		return "", errors.New("usecases/action_usecase.go: UploadQuestions " + err.Error())
 	}
