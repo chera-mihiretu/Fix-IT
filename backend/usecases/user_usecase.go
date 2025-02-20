@@ -77,7 +77,7 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	}
 
 	// Generate token
-	token, err := infrastructure.GenerateJWT(user.Username, user.Email)
+	token, err := infrastructure.GenerateJWT(storedUser.ID.Hex())
 	if err != nil {
 		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}

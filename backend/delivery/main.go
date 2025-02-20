@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github/chera/fix-it/delivery/controller"
 	"github/chera/fix-it/delivery/router"
 	"github/chera/fix-it/infrastructure"
@@ -14,12 +15,15 @@ import (
 )
 
 func main() {
+
+	// Inviroment loading
 	err := godotenv.Load()
 
 	if err != nil {
 		log.Fatal("could not load env file")
 	}
 
+	// mongoDB connection and client creation
 	client, err := infrastructure.NewMongoClient()
 
 	if err != nil {
@@ -33,10 +37,19 @@ func main() {
 		}
 	}(client)
 
-	my_database := client.Database("github/chera/fix-it")
+	// Gemini model loading
+	gem_model, gem_context, err := infrastructure.NewGeminiModel()
+
+	if err != nil {
+		log.Fatalf("could not load gemini model: %v", err)
+	}
+
+	fmt.Println("✅ Gemini model loaded successfully")
+
+	my_database := client.Database("fix-it")
 
 	userRepo := repository.NewUserRepository(my_database)
-	actionRepo := repository.NewActionRepository(my_database)
+	actionRepo := repository.NewActionRepository(my_database, gem_model, gem_context)
 	userusecase := usecases.NewUseCase(userRepo)
 	actionusecase := usecases.NewActionUsecase(actionRepo)
 

@@ -5,50 +5,108 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github/chera/fix-it/domain"
 	"github/chera/fix-it/infrastructure"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/google/generative-ai-go/genai"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ActionRepository interface {
-	UploadPDF(ctx context.Context, pdf domain.PDF, username string) error
+	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
+	UploadQuestions(ctx context.Context, questions []domain.Question) (string, error)
+	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
+	UploadSection(ctx context.Context, section domain.Section) error
+
 	ProcessPDF(ctx context.Context, link string) (string, error)
-	UploadForGemini(ctx context.Context, processedText string) error
+	UploadForGemini(processedText string) ([]domain.ConversationTurn, error)
 	GetDropLink(ctx context.Context, filename string) (string, error)
+	FormatQeustion(question string) []domain.Question
 }
 
 type actionRepository struct {
-	UserBooks *mongo.Collection
+	UserBooks        *mongo.Collection
+	UserQuiz         *mongo.Collection
+	UserConversation *mongo.Collection
+	UserSections     *mongo.Collection
+	GeminiModel      *genai.GenerativeModel
+	GeminiContext    context.Context
 }
 
-func NewActionRepository(db *mongo.Database) ActionRepository {
+func NewActionRepository(db *mongo.Database, model *genai.GenerativeModel, ctx context.Context) ActionRepository {
 	return &actionRepository{
-		UserBooks: db.Collection("pdf"),
+		UserBooks:        db.Collection("pdf"),
+		UserQuiz:         db.Collection("quiz"),
+		UserConversation: db.Collection("conversation"),
+		UserSections:     db.Collection("section"),
+		GeminiContext:    ctx,
+		GeminiModel:      model,
 	}
 }
 
-func (r *actionRepository) UploadPDF(ctx context.Context, pdf domain.PDF, username string) error {
-
-	upsert := true
-
-	filter := bson.M{"username": username}
-	update := bson.M{"$push": bson.M{"pdf": pdf}}
-
-	_, err := r.UserBooks.UpdateOne(ctx, filter, update, &options.UpdateOptions{Upsert: &upsert})
-
+func (r *actionRepository) UploadSection(ctx context.Context, section domain.Section) error {
+	_, err := r.UserSections.InsertOne(ctx, section)
 	if err != nil {
 		return errors.New("repository/action_repository: " + err.Error())
 	}
-
 	return nil
+}
+
+func (r *actionRepository) UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error) {
+
+	var conv domain.Conversation
+	conv.Turns = conversation
+
+	conversationID, err := r.UserConversation.InsertOne(ctx, conv)
+
+	if err != nil {
+		return "", errors.New("repository/action_repository: " + err.Error())
+	}
+
+	insertedID, ok := conversationID.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("repository/action_repository: could not convert inserted id")
+	}
+	return insertedID.Hex(), nil
+}
+
+func (r *actionRepository) UploadQuestions(ctx context.Context, questions []domain.Question) (string, error) {
+
+	var new_quiz domain.Quiz
+	new_quiz.Questions = questions
+
+	questionID, err := r.UserQuiz.InsertOne(ctx, new_quiz)
+
+	if err != nil {
+		return "", errors.New("repository/action_repository: " + err.Error())
+	}
+
+	insertedID, ok := questionID.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("repository/action_repository: could not convert inserted id")
+	}
+	return insertedID.Hex(), nil
+}
+
+func (r *actionRepository) UploadPDF(ctx context.Context, pdf domain.PDF) (string, error) {
+
+	id, err := r.UserBooks.InsertOne(ctx, pdf)
+
+	if err != nil {
+		return "", errors.New("repository/action_repository: " + err.Error())
+	}
+
+	insertedID, ok := id.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("repository/action_repository: could not convert inserted id")
+	}
+	return insertedID.Hex(), nil
 
 }
 
@@ -81,15 +139,44 @@ func (r *actionRepository) ProcessPDF(ctx context.Context, link string) (string,
 
 }
 
-func (r *actionRepository) UploadForGemini(ctx context.Context, processedText string) error {
-	geminiToken, exist := os.LookupEnv("GEM_API")
-	if !exist {
-		return errors.New("usecases/action_usecase.go: UploadForGemini " + "No Gemini token found")
+func (r *actionRepository) UploadForGemini(processedText string) ([]domain.ConversationTurn, error) {
+	conversation := []domain.ConversationTurn{}
+	prompt := fmt.Sprintf(`
+			Generate 20 multiple-choice questions based on the following text.  Each question should have 4 alternatives (A, B, C, D) and indicate the correct answer.  Format the output precisely as shown in the example below.  Do not include any extra text or explanations.
+
+			Example Format:
+			1, What is the capital of France?
+			A, London
+			B, Paris
+			C, Rome
+			D, Berlin
+			B
+
+			2, What is the highest mountain in the world?
+			A, K2
+			B, Kangchenjunga
+			C, Mount Everest
+			D, Lhotse
+			C
+
+
+			Text:
+			%s
+			`, processedText)
+
+	resp, err := r.GeminiModel.GenerateContent(r.GeminiContext, genai.Text(prompt))
+
+	if err != nil {
+		return []domain.ConversationTurn{}, fmt.Errorf("error generating content: %v", err)
 	}
 
-	service, err := generative
+	gem_resp := infrastructure.ExtractGeminiResponse(resp)
 
-	return nil
+	fmt.Println(gem_resp)
+
+	conversation = append(conversation, domain.ConversationTurn{User: prompt, Gemini: gem_resp})
+
+	return conversation, nil
 }
 
 func (r *actionRepository) GetDropLink(ctx context.Context, filename string) (string, error) {
@@ -136,4 +223,9 @@ func (r *actionRepository) GetDropLink(ctx context.Context, filename string) (st
 	}
 
 	return "", fmt.Errorf("could not find URL in response")
+}
+
+func (r *actionRepository) FormatQeustion(question string) []domain.Question {
+	qeustions := infrastructure.ParseQuestions(question)
+	return qeustions
 }

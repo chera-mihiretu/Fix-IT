@@ -26,7 +26,7 @@ func NewActionController(actionusecase usecases.ActionUsecase) *ActionController
 func (a *ActionController) UploadPDF(ctx *gin.Context) {
 
 	file, header, err := ctx.Request.FormFile("file")
-	username, exist := ctx.Get("username")
+	userID, exist := ctx.Get("user_id")
 
 	if !exist {
 		ctx.JSON(400, gin.H{"error": "No username found"})
@@ -56,17 +56,34 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 
 	link, err := a.actionUsecase.GetDropLink(ctx, filename)
 
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	processedText, err := a.actionUsecase.ProcessPDF(ctx, link)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
-	ctx.JSON(200, gin.H{"processed_text": processedText})
 
-	return
+	questions, conversation, err := a.actionUsecase.UploadForGemini(processedText)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	questionsID, err := a.actionUsecase.UploadQuestions(ctx, questions)
+
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	conversationdID, err := a.actionUsecase.UploadConversation(ctx, conversation)
+
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -78,13 +95,28 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 		Created: time.Now().Format(time.RFC3339),
 	}
 
-	err = a.actionUsecase.UploadPDF(ctx, pdf, username.(string))
+	pdfId, err := a.actionUsecase.UploadPDF(ctx, pdf)
 
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(200, gin.H{"message": "pdf uploaded"})
+	section := domain.Section{
+		SectionName:    oldfilename,
+		PDFID:          pdfId,
+		QuestionsID:    questionsID,
+		ExplanationsID: conversationdID,
+		CreatedBy:      userID.(string),
+	}
+
+	err = a.actionUsecase.UploadSection(ctx, section)
+
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"questions": questions})
 
 }

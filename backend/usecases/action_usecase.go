@@ -8,38 +8,65 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 )
 
 type ActionUsecase interface {
-	UploadPDF(ctx context.Context, pdf domain.PDF, username string) error
+	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
+	UploadQuestions(ctx context.Context, questions []domain.Question) (string, error)
+	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
+	UploadSection(ctx context.Context, section domain.Section) error
+
 	ProcessPDF(ctx context.Context, link string) (string, error)
-	UploadForGemini(ctx context.Context, processed_text string) error
+	UploadForGemini(processed_text string) ([]domain.Question, []domain.ConversationTurn, error)
 	GetDropLink(ctx context.Context, filename string) (string, error)
 	UploadToDropBox(ctx context.Context, file multipart.File, filename, token string) error
 }
 
 type actionUsecase struct {
-	PDFRepository repository.ActionRepository
+	ActionRepository repository.ActionRepository
 }
 
 func NewActionUsecase(repo repository.ActionRepository) ActionUsecase {
 	return &actionUsecase{
-		PDFRepository: repo,
+		ActionRepository: repo,
 	}
 }
 
-func (a *actionUsecase) UploadPDF(ctx context.Context, pdf domain.PDF, username string) error {
-	err := a.PDFRepository.UploadPDF(ctx, pdf, username)
+func (a *actionUsecase) UploadSection(ctx context.Context, section domain.Section) error {
+	err := a.ActionRepository.UploadSection(ctx, section)
 	if err != nil {
-		return errors.New("usecases/action_usecase.go: UploadPDF " + err.Error())
+		return errors.New("usecases/action_usecase.go: UploadSection " + err.Error())
 	}
 	return nil
 }
 
+func (a *actionUsecase) UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error) {
+	conversationId, err := a.ActionRepository.UploadConversation(ctx, conversation)
+	if err != nil {
+		return "", errors.New("usecases/action_usecase.go: UploadConversation " + err.Error())
+	}
+	return conversationId, nil
+}
+
+func (a *actionUsecase) UploadQuestions(ctx context.Context, questions []domain.Question) (string, error) {
+	questionId, err := a.ActionRepository.UploadQuestions(ctx, questions)
+	if err != nil {
+		return "", errors.New("usecases/action_usecase.go: UploadQuestions " + err.Error())
+	}
+	return questionId, nil
+}
+
+func (a *actionUsecase) UploadPDF(ctx context.Context, pdf domain.PDF) (string, error) {
+	pdfId, err := a.ActionRepository.UploadPDF(ctx, pdf)
+	if err != nil {
+		return "", errors.New("usecases/action_usecase.go: UploadPDF " + err.Error())
+	}
+	return pdfId, nil
+}
+
 func (a *actionUsecase) ProcessPDF(ctx context.Context, link string) (string, error) {
 
-	processedText, err := a.PDFRepository.ProcessPDF(ctx, link)
+	processedText, err := a.ActionRepository.ProcessPDF(ctx, link)
 	if err != nil {
 		return "", errors.New("usecases/action_usecase.go: ProcessPDF " + err.Error())
 	}
@@ -47,15 +74,23 @@ func (a *actionUsecase) ProcessPDF(ctx context.Context, link string) (string, er
 	return processedText, nil
 }
 
-func (a *actionUsecase) UploadForGemini(ctx context.Context, processedText string) error {
+func (a *actionUsecase) UploadForGemini(processedText string) ([]domain.Question, []domain.ConversationTurn, error) {
 
-	geminiToken, exist := os.LookupEnv("GEMINI_TOKEN")
+	conversation, err := a.ActionRepository.UploadForGemini(processedText)
 
-	return nil
+	if err != nil {
+		return []domain.Question{}, []domain.ConversationTurn{}, errors.New("usecases/action_usecase.go: UploadForGemini " + err.Error())
+	}
+
+	question := conversation[0].Gemini
+
+	formatted_question := a.ActionRepository.FormatQeustion(question)
+
+	return formatted_question, conversation, nil
 }
 
 func (a *actionUsecase) GetDropLink(ctx context.Context, filename string) (string, error) {
-	return a.PDFRepository.GetDropLink(ctx, filename)
+	return a.ActionRepository.GetDropLink(ctx, filename)
 }
 
 func (a *actionUsecase) UploadToDropBox(ctx context.Context, file multipart.File, filename, drop_token string) error {

@@ -18,6 +18,7 @@ func SetUpRouter(usercontroller *controller.UserController, actioncontroller *co
 	// add an endpoint to upload a pdf and should have token of the user
 	action := router.Group("/action")
 	action.POST("/upload", infrastructure.AuthMiddleWare(), actioncontroller.UploadPDF)
+	action.POST("/quiz_answer/:id", infrastructure.AuthMiddleWare(), actioncontroller.QuizAnswer)
 
 	return router
 
