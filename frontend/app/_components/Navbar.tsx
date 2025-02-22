@@ -1,35 +1,45 @@
-import React from "react";
+"use client";
+
+import { useAuth } from "../_hooks/authHook";
 import Link from "next/link";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+
   return (
-    <nav className="flex justify-between items-center px-6 md:px-12 lg:px-24 py-4 border-b">
-      <div className="text-2xl font-bold text-gray-900">
-        <Link href="/">LearnAI</Link>
+    <nav className="flex justify-between items-center px-6 py-4 border-b">
+      <Link href="/" className="text-2xl font-bold">
+        LearnAI
+      </Link>
+
+      <div className="flex space-x-6">
+        {user ? (
+          <>
+            <span className="text-gray-700">Hello, {user.username}!</span>
+            <button
+              onClick={logout}
+              className="text-red-600 hover:underline font-bold "
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href="/signin"
+              className="text-gray-700 hover:font-bold transition-all hover:underline"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
-      <div className="hidden md:flex space-x-6 text-gray-700">
-        <Link href="#" className="hover:text-gray-900">
-          Features
-        </Link>
-        <Link href="#" className="hover:text-gray-900">
-          How it Works
-        </Link>
-        <Link href="#" className="hover:text-gray-900">
-          Pricing
-        </Link>
-      </div>
-      <div className="hidden md:flex space-x-4 items-center">
-        <Link href="/signin" className="text-gray-700 hover:text-gray-900">
-          Sign In
-        </Link>
-        <Link
-          href="/signup"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          Sign Up
-        </Link>
-      </div>
-      <button className="md:hidden text-gray-700 text-2xl">☰</button>
     </nav>
   );
 }

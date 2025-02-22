@@ -1,6 +1,49 @@
+"use client";
+
+import { useState } from "react";
+import { useAuth } from "../_hooks/authHook";
 import Link from "next/link";
 
-export default function page() {
+export default function Page() {
+  const { signup } = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    username: "",
+    academicLevel: "High School",
+    age: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleChangeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData({ ...formData, academicLevel: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Simple validation check
+    if (
+      !formData.email ||
+      !formData.username ||
+      !formData.age ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      return alert("Please fill in all fields.");
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      return alert("Passwords do not match!");
+    }
+
+    await signup(formData);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 py-10">
       <div className="bg-white p-8 rounded-lg shadow-md w-[400px]">
@@ -12,7 +55,7 @@ export default function page() {
           </p>
         </div>
 
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm mb-1">
               Email address
@@ -21,8 +64,12 @@ export default function page() {
               <span className="text-gray-500">📧</span>
               <input
                 type="email"
+                name="email"
                 className="w-full outline-none ml-2"
                 placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -33,8 +80,12 @@ export default function page() {
               <span className="text-gray-500">👤</span>
               <input
                 type="text"
+                name="username"
                 className="w-full outline-none ml-2"
                 placeholder="Choose a username"
+                value={formData.username}
+                onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -45,7 +96,13 @@ export default function page() {
             </label>
             <div className="flex items-center border rounded px-3 py-2">
               <span className="text-gray-500">📚</span>
-              <select className="w-full outline-none ml-2">
+              <select
+                name="academicLevel"
+                className="w-full outline-none ml-2"
+                value={formData.academicLevel}
+                onChange={handleChangeSelect}
+                required
+              >
                 <option>High School</option>
                 <option>Undergraduate</option>
                 <option>Graduate</option>
@@ -59,8 +116,12 @@ export default function page() {
               <span className="text-gray-500">📅</span>
               <input
                 type="number"
+                name="age"
                 className="w-full outline-none ml-2"
                 placeholder="Enter your age"
+                value={formData.age}
+                onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -71,8 +132,12 @@ export default function page() {
               <span className="text-gray-500">🔒</span>
               <input
                 type="password"
+                name="password"
                 className="w-full outline-none ml-2"
                 placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -85,13 +150,20 @@ export default function page() {
               <span className="text-gray-500">🔒</span>
               <input
                 type="password"
+                name="confirmPassword"
                 className="w-full outline-none ml-2"
                 placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
               />
             </div>
           </div>
 
-          <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+          >
             Create Account
           </button>
         </form>

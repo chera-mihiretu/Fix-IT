@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "server": "json-server --watch utils/db.json --port 5000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
