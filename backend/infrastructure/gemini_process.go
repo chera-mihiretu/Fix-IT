@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github/chera/fix-it/domain"
 	"os"
+	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -49,4 +50,53 @@ func NewGeminiModel() (*genai.GenerativeModel, context.Context, error) {
 
 	return model, ctx, nil
 
+}
+
+func ExtractTopicGemini(resp *genai.GenerateContentResponse) string {
+	geminiResponse := ""
+	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+		for _, part := range resp.Candidates[0].Content.Parts {
+			if text, ok := part.(genai.Text); ok {
+				geminiResponse += string(text)
+			}
+		}
+	}
+	return geminiResponse
+}
+
+func ParseTopicGemini(gemini string) domain.TopicList {
+	lines := strings.Split(gemini, "\n")
+
+	var topics []domain.Topic
+	var currentTopic domain.Topic
+
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Weak Point") {
+			if currentTopic.Title != "" {
+				topics = append(topics, currentTopic)
+			}
+			title := line[13:]
+			currentTopic.Title = title
+		} else if strings.HasPrefix(line, "Explanation") {
+			explanation := line[13:]
+			currentTopic.Explanation = explanation
+		} else {
+			currentTopic.Explanation += line
+		}
+	}
+
+	if currentTopic.Title != "" {
+		topics = append(topics, currentTopic)
+	}
+
+	var topicList domain.TopicList
+
+	topicList.Topics = topics
+
+	return topicList
 }

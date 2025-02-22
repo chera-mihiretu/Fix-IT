@@ -14,8 +14,13 @@ type ActionUsecase interface {
 	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
 	UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error)
 	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
-	UploadSection(ctx context.Context, section domain.Section) error
-	QuizAnswer(ctx context.Context, quiz_id string, userID string, answers []domain.Answer) (int, error)
+	UploadSection(ctx context.Context, section domain.Section) (string, error)
+	UpdateSection(ctx context.Context, section domain.Section) error
+
+	QuizAnswer(ctx context.Context, quiz_id string, answers []domain.Answer) (int, bool, error)
+
+	CreateExplanation(ctx context.Context, quizID string, answers domain.AnswerList) (string, error)
+	CreateTopic(ctx context.Context, answerID, conversationID string) (string, error)
 
 	ProcessPDF(ctx context.Context, link string) (string, error)
 	UploadForGemini(processed_text string) ([]domain.Question, []domain.ConversationTurn, error)
@@ -33,20 +38,26 @@ func NewActionUsecase(repo repository.ActionRepository) ActionUsecase {
 	}
 }
 
-func (a *actionUsecase) QuizAnswer(ctx context.Context, quiz_id string, userID string, answers []domain.Answer) (int, error) {
-	score, err := a.ActionRepository.QuizAnswer(ctx, quiz_id, userID, answers)
-	if err != nil {
-		return 0, errors.New("usecases/action_usecase.go: QuizAnswer " + err.Error())
-	}
-	return score, nil
+func (a *actionUsecase) CreateTopic(ctx context.Context, answerID, conversationID string) (string, error) {
+	return a.ActionRepository.CreateTopic(ctx, answerID, conversationID)
 }
 
-func (a *actionUsecase) UploadSection(ctx context.Context, section domain.Section) error {
-	err := a.ActionRepository.UploadSection(ctx, section)
-	if err != nil {
-		return errors.New("usecases/action_usecase.go: UploadSection " + err.Error())
-	}
-	return nil
+func (a *actionUsecase) UpdateSection(ctx context.Context, section domain.Section) error {
+	return a.ActionRepository.UpdateSection(ctx, section)
+}
+
+func (a *actionUsecase) CreateExplanation(ctx context.Context, quizID string, answers domain.AnswerList) (string, error) {
+	return a.ActionRepository.CreateExplanation(ctx, quizID, answers)
+}
+
+func (a *actionUsecase) QuizAnswer(ctx context.Context, quiz_id string, answers []domain.Answer) (int, bool, error) {
+	return a.ActionRepository.QuizAnswer(ctx, quiz_id, answers)
+
+}
+
+func (a *actionUsecase) UploadSection(ctx context.Context, section domain.Section) (string, error) {
+	return a.ActionRepository.UploadSection(ctx, section)
+
 }
 
 func (a *actionUsecase) UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error) {

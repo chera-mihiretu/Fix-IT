@@ -37,3 +37,35 @@ A
 		}
 	}
 }
+
+func TestParseGeminiAnswer(t *testing.T) {
+	// Test input
+	input := `
+	Question Number: 1
+	Correct Answer: B
+	Your Answer: A
+	Correctness: Incorrect
+	Explanation: The primary cause of the agricultural crisis in Africa is the reliance on outdated farming practices, not the exodus of the rural population to urban areas.
+	
+	Question Number: 2
+	Correct Answer: D
+	Your Answer: B
+	Correctness: Incorrect
+	Explanation: The indirect impact of the agricultural problem in Africa includes all of the options provided, not just reduced food security.
+
+
+
+	
+	`
+
+	result := infrastructure.ParseGeminiAnswer(input)
+
+	expected := []domain.QeustionAnswer{
+		{QuestionNumber: 1, CorrectAnswer: "B", YourAnswer: "A", Explanation: "The primary cause of the agricultural crisis in Africa is the reliance on outdated farming practices, not the exodus of the rural population to urban areas.", Correctness: false},
+		{QuestionNumber: 2, CorrectAnswer: "D", YourAnswer: "B", Explanation: "The indirect impact of the agricultural problem in Africa includes all of the options provided, not just reduced food security.", Correctness: false},
+	}
+
+	if len(result) != len(expected) {
+		t.Fatalf("Expected %d questions, got %d", len(expected), len(result))
+	}
+}

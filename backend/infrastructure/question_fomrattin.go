@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"github/chera/fix-it/domain"
+	"strconv"
 	"strings"
 )
 
@@ -51,11 +52,61 @@ func ParseQuestions(input string) []domain.Question {
 	return questions
 }
 
+func ParseGeminiAnswer(response string) []domain.QeustionAnswer {
+	questionBlocks := strings.Split(response, "\n")
+
+	var questions []domain.QeustionAnswer
+	var q domain.QeustionAnswer
+
+	for _, line := range questionBlocks {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		var left, right string
+		for i := 0; i < len(line); i++ {
+			if line[i] == ':' {
+				left = strings.TrimSpace(line[:i])
+				right = strings.TrimSpace(line[i+1:])
+			}
+		}
+
+		if strings.Contains(left, "Question Number") {
+			if q.QuestionNumber != 0 {
+				questions = append(questions, q)
+				q = domain.QeustionAnswer{}
+			}
+			q.QuestionNumber, _ = strconv.Atoi(strings.TrimSpace(right))
+		}
+		if strings.Contains(left, "Correct Answer") {
+			q.CorrectAnswer = strings.TrimSpace(right)
+		}
+		if strings.Contains(left, "Your Answer") {
+			q.YourAnswer = strings.TrimSpace(right)
+		}
+		if strings.Contains(left, "Correctness") {
+			q.Correctness = strings.TrimSpace(right) == "Correct"
+		}
+		if strings.Contains(left, "Explanation") {
+			q.Explanation = strings.TrimSpace(right)
+
+		}
+
+	}
+
+	if q.QuestionNumber != 0 {
+		questions = append(questions, q)
+	}
+	return questions
+
+}
+
 func ParseAnswer(answers []domain.Answer) string {
 	result := ""
 	for _, ans := range answers {
 
-		result += fmt.Sprintf("%d, %s\n", ans.QuestionNO, ans.Answer)
+		result += fmt.Sprintf("QuestionNumber : %d, Answer :%s\n", ans.QuestionNO, ans.Answer)
 
 	}
 

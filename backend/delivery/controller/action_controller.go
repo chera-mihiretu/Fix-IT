@@ -13,12 +13,14 @@ import (
 
 type ActionController struct {
 	actionUsecase usecases.ActionUsecase
+	viewusecase   usecases.ViewUsecase
 }
 
-func NewActionController(actionusecase usecases.ActionUsecase) *ActionController {
+func NewActionController(actionusecase usecases.ActionUsecase, viewusecase usecases.ViewUsecase) *ActionController {
 
 	return &ActionController{
 		actionUsecase: actionusecase,
+		viewusecase:   viewusecase,
 	}
 
 }
@@ -29,7 +31,7 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 	userID, exist := ctx.Get("user_id")
 
 	if !exist {
-		ctx.JSON(400, gin.H{"error": "No username found"})
+		ctx.JSON(400, gin.H{"error": "No userid found"})
 		return
 	}
 
@@ -73,7 +75,7 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 		return
 	}
 
-	questionsID, err := a.actionUsecase.UploadQuestions(ctx, questions, userID)
+	questionsID, err := a.actionUsecase.UploadQuestions(ctx, questions, userID.(string))
 
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": err.Error()})
@@ -110,30 +112,41 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 		CreatedBy:      userID.(string),
 	}
 
-	err = a.actionUsecase.UploadSection(ctx, section)
+	sectionID, err := a.actionUsecase.UploadSection(ctx, section)
 
 	if err != nil {
 		ctx.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(200, gin.H{"questions": questions})
+	ctx.JSON(200, gin.H{"questions": sectionID})
 
 }
 
 func (a *ActionController) QuizAnswer(ctx *gin.Context) {
 
-	quizID := ctx.Param("id")
-	userID := ctx.Get("user_id")
+	sectionID := ctx.DefaultQuery("id", "")
+	userID, exist := ctx.Get("user_id")
 
-	var answers []domain.Answer
+	if !exist {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
+		return
+	}
 
+	section, err := a.viewusecase.GetSection(ctx, sectionID, userID.(string))
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var answers domain.AnswerList
 	if err := ctx.ShouldBindJSON(&answers); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	score, err := a.actionUsecase.QuizAnswer(ctx, quizID, userID, answers)
+	score, taken, err := a.actionUsecase.QuizAnswer(ctx, section.QuestionsID, answers.Answers)
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -141,6 +154,25 @@ func (a *ActionController) QuizAnswer(ctx *gin.Context) {
 	}
 
 	if score != 20 {
+		if !taken {
+			answerID, err := a.actionUsecase.CreateExplanation(ctx, section.ExplanationsID, answers)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			section.AnswersID = answerID
+
+			err = a.actionUsecase.UpdateSection(ctx, section)
+
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+		}
+		ctx.JSON(http.StatusOK, gin.H{"score": score, "explanation_id": sectionID})
+		return
 
 	}
 

@@ -28,6 +28,7 @@ type Section struct {
 	PDFID          string             `bson:"pdf_id"`
 	QuestionsID    string             `bson:"questions_id"`
 	ExplanationsID string             `bson:"explanations_id"`
+	AnswersID      string             `bson:"answers_id"`
 	CreatedBy      string             `bson:"created_by"`
 }
 
@@ -59,6 +60,7 @@ type Question struct {
 
 type Quiz struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Taken     bool               `bson:"taken"`
 	Questions []Question         `bson:"questions"`
 	CreatedBy string             `bson:"created_by"`
 }
@@ -66,4 +68,25 @@ type Quiz struct {
 type Answer struct {
 	QuestionNO int    `json:"question_no" bson:"question_no"`
 	Answer     string `json:"answer" bson:"answer"`
+}
+
+type AnswerList struct {
+	Answers []Answer `json:"answers" bson:"answers"`
+}
+
+type QeustionAnswer struct {
+	QuestionNumber int    `json:"question_number" bson:"question_number"`
+	CorrectAnswer  string `json:"correct_answer" bson:"correct_answer"`
+	YourAnswer     string `json:"your_answer" bson:"your_answer"`
+	Explanation    string `json:"explanation" bson:"explanation"`
+	Correctness    bool   `json:"correctness" bson:"correctness"`
+}
+
+type Topic struct {
+	Title       string
+	Explanation string
+}
+
+type TopicList struct {
+	Topics []Topic
 }
