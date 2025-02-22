@@ -1,6 +1,8 @@
 module github/chera/fix-it
 
-go 1.23.3
+go 1.23.0
+
+toolchain go1.23.3
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -8,7 +10,7 @@ require (
 	github.com/google/generative-ai-go v0.19.0
 	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.17.2
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	google.golang.org/api v0.222.0
 )
 
