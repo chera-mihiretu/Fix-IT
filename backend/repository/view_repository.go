@@ -52,7 +52,7 @@ func (r *viewRepository) GetTopic(ctx context.Context, conversationID string) (d
 	}
 
 	if len(conversation.Turns) < 2 {
-		return domain.TopicList{}, fmt.Errorf("No topic found")
+		return domain.TopicList{}, fmt.Errorf("no topic found")
 
 	}
 

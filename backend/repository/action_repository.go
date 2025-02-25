@@ -1,38 +1,36 @@
 package repository
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github/chera/fix-it/domain"
 	"github/chera/fix-it/infrastructure"
 	"io"
+	"mime/multipart"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ActionRepository interface {
-	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
 	UploadQuestions(ctx context.Context, questions []domain.Question, userID string) (string, error)
 	UploadConversation(ctx context.Context, conversation []domain.ConversationTurn) (string, error)
 	UploadSection(ctx context.Context, section domain.Section) (string, error)
 	QuizAnswer(ctx context.Context, quizID string, answer []domain.Answer) (int, bool, error)
 	CreateExplanation(ctx context.Context, explanationID string, answers domain.AnswerList) (string, error)
 	UpdateSection(ctx context.Context, section domain.Section) error
+	GetPdfLink(ctx context.Context, file multipart.File, filename string) (string, error)
 
 	CreateTopic(ctx context.Context, answerID, conversationID string) (string, error)
 
+	UploadPDF(ctx context.Context, pdf domain.PDF) (string, error)
 	ProcessPDF(ctx context.Context, link string) (string, error)
 	UploadForGemini(processedText string) ([]domain.ConversationTurn, error)
-	GetDropLink(ctx context.Context, filename string) (string, error)
 	FormatQeustion(question string) []domain.Question
 }
 
@@ -56,6 +54,11 @@ func NewActionRepository(db *mongo.Database, model *genai.GenerativeModel, ctx c
 		GeminiContext:    ctx,
 		GeminiModel:      model,
 	}
+}
+
+func (r *actionRepository) GetPdfLink(ctx context.Context, file multipart.File, filename string) (string, error) {
+	return infrastructure.UploadPDF(file, filename)
+
 }
 
 func (r *actionRepository) CreateTopic(ctx context.Context, answerID, conversationID string) (string, error) {
@@ -310,22 +313,6 @@ func (r *actionRepository) UploadQuestions(ctx context.Context, questions []doma
 	return insertedID.Hex(), nil
 }
 
-func (r *actionRepository) UploadPDF(ctx context.Context, pdf domain.PDF) (string, error) {
-
-	id, err := r.UserBooks.InsertOne(ctx, pdf)
-
-	if err != nil {
-		return "", errors.New("repository/action_repository: " + err.Error())
-	}
-
-	insertedID, ok := id.InsertedID.(primitive.ObjectID)
-	if !ok {
-		return "", errors.New("repository/action_repository: could not convert inserted id")
-	}
-	return insertedID.Hex(), nil
-
-}
-
 func (r *actionRepository) ProcessPDF(ctx context.Context, link string) (string, error) {
 
 	processedTextLink, err := infrastructure.ProcessPDF(link)
@@ -400,51 +387,18 @@ func (r *actionRepository) UploadForGemini(processedText string) ([]domain.Conve
 
 	return conversation, nil
 }
+func (r *actionRepository) UploadPDF(ctx context.Context, pdf domain.PDF) (string, error) {
+	id, err := r.UserBooks.InsertOne(ctx, pdf)
 
-func (r *actionRepository) GetDropLink(ctx context.Context, filename string) (string, error) {
-	url := "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
-	reqBody := fmt.Sprintf(`{"path":"/%s","settings":{"requested_visibility":"public"}}`, filename)
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader([]byte(reqBody)))
 	if err != nil {
-		return "", fmt.Errorf("error creating request: %v", err)
+		return "", errors.New("repository/action_repository: " + err.Error())
 	}
 
-	apiKey, exist := os.LookupEnv("DROPBOX_TOKEN")
-	if !exist {
-		return "", fmt.Errorf("error loading dropbox api key: %v", err)
+	insertedID, ok := id.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", errors.New("repository/action_repository: could not convert inserted id")
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("error sending request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Read and handle the response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("error reading response body: %v", err)
-	}
-
-	// If the request was successful, parse the shared link from the response
-	var response map[string]interface{}
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return "", fmt.Errorf("error unmarshalling response: %v", err)
-	}
-
-	// Extract the URL from the response
-	if link, exists := response["url"].(string); exists {
-		link = strings.Replace(link, "https://www", "https://dl", -1)
-		return link, nil
-	}
-
-	return "", fmt.Errorf("could not find URL in response")
+	return insertedID.Hex(), nil
 }
 
 func (r *actionRepository) FormatQeustion(question string) []domain.Question {

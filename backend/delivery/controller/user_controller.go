@@ -42,11 +42,13 @@ func (u *UserController) Register(ctx *gin.Context) {
 	err := infrastructure.SignUpValidateUser(user)
 
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		// If the user input wrong intput
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input " + err.Error()})
 		return
 	}
 
 	hashedPassword, err := infrastructure.HashPassword(user.Password)
+
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -61,7 +63,7 @@ func (u *UserController) Register(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "user created"})
+	ctx.JSON(http.StatusCreated, gin.H{"message": "User Created Successfully, Please Verify Your account"})
 
 }
 

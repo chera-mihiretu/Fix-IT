@@ -5,7 +5,6 @@ import (
 	"github/chera/fix-it/infrastructure"
 	"github/chera/fix-it/usecases"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,25 +42,19 @@ func (a *ActionController) UploadPDF(ctx *gin.Context) {
 	defer file.Close()
 
 	filename := infrastructure.GetUniqueFileName()
-	drop_token, exist := os.LookupEnv("DROPBOX_TOKEN")
+
 	if !exist {
 		ctx.JSON(400, gin.H{"error": "No dropbox token found"})
 		return
 	}
 
-	err = a.actionUsecase.UploadToDropBox(ctx, file, filename, drop_token)
+	link, err := a.actionUsecase.GetPdfLink(ctx, file, header.Filename)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	link, err := a.actionUsecase.GetDropLink(ctx, filename)
-
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 	processedText, err := a.actionUsecase.ProcessPDF(ctx, link)
 
 	if err != nil {

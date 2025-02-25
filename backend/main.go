@@ -48,6 +48,10 @@ func main() {
 
 	my_database := client.Database("fix-it")
 
+	if err != nil {
+		log.Fatalf("could not create appwrite client: %v", err)
+	}
+
 	userRepo := repository.NewUserRepository(my_database)
 	viewRepo := repository.NewViewController(my_database)
 	actionRepo := repository.NewActionRepository(my_database, gem_model, gem_context)
