@@ -12,6 +12,13 @@ func SetUpRouter(usercontroller *controller.UserController, actioncontroller *co
 
 	router := gin.New()
 	router.Use(cors.Default())
+	router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	user := router.Group("/u")
 	user.POST("/register", usercontroller.Register)

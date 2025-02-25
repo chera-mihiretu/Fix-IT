@@ -20,6 +20,7 @@ import (
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.SetOutput(os.Stdout) // Optional: Output to terminal
+
 }
 
 func main() {
@@ -60,6 +61,7 @@ func main() {
 		log.Fatalf("could not create appwrite client: %v", err)
 	}
 
+	fmt.Println("🚀 Fix-it server starting... Version 1.0.0")
 	userRepo := repository.NewUserRepository(my_database)
 	viewRepo := repository.NewViewController(my_database)
 	actionRepo := repository.NewActionRepository(my_database, gem_model, gem_context)
