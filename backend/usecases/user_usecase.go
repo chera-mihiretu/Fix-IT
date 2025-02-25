@@ -12,6 +12,7 @@ type UserUsecase interface {
 	Register(ctx context.Context, user domain.User) error
 	Login(ctx context.Context, user domain.User) (string, error)
 	Verify(ctx context.Context, token string) error
+	GenerateToken(user_id string) (string, error)
 }
 
 type userUsecase struct {
@@ -43,11 +44,8 @@ func (u *userUsecase) Verify(ctx context.Context, token string) error {
 
 func (u *userUsecase) Register(ctx context.Context, user domain.User) error {
 	// Add user registration logic here
-	err := u.UserRepository.CreateUser(ctx, user)
-	if err != nil {
-		return errors.New("usecases/user_usecase.go: Register " + err.Error())
-	}
-	return nil
+	return u.UserRepository.CreateUser(ctx, user)
+
 }
 
 func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, error) {
@@ -67,17 +65,21 @@ func (u *userUsecase) Login(ctx context.Context, user domain.User) (string, erro
 	}
 
 	if u_error != nil {
-		return "", errors.New("usecases/user_usecase.go: Login " + u_error.Error())
+		return "", errors.New(u_error.Error())
 	}
 
 	equal := infrastructure.ComparePassword(storedUser.Password, user.Password)
 
 	if !equal {
-		return "", errors.New("usecases/user_usecase.go: Login - no such user")
+		return "", errors.New("no such user")
 	}
 
+	return storedUser.ID.Hex(), nil
+}
+
+func (u *userUsecase) GenerateToken(user_id string) (string, error) {
 	// Generate token
-	token, err := infrastructure.GenerateJWT(storedUser.ID.Hex())
+	token, err := infrastructure.GenerateJWT(user_id)
 	if err != nil {
 		return "", errors.New("usecases/user_usecase.go: Login " + err.Error())
 	}

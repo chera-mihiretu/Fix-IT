@@ -11,6 +11,8 @@ type ViewUsecase interface {
 	GetQuiz(ctx context.Context, quizID string) (domain.Quiz, error)
 	GetExplanation(ctx context.Context, explanationID string) (domain.Conversation, error)
 	GetSection(ctx context.Context, sectionID string, userID string) (domain.Section, error)
+
+	SectionList(ctx context.Context, userID string) ([]domain.Section, error)
 }
 
 type viewusecase struct {
@@ -21,6 +23,10 @@ func NewViewUsecase(viewrepository repository.ViewRepository) ViewUsecase {
 	return &viewusecase{
 		ViewRepository: viewrepository,
 	}
+}
+
+func (v *viewusecase) SectionList(ctx context.Context, userID string) ([]domain.Section, error) {
+	return v.ViewRepository.SectionList(ctx, userID)
 }
 
 func (v *viewusecase) GetTopic(ctx context.Context, conversationID string) (domain.TopicList, error) {

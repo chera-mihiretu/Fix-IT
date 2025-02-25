@@ -92,6 +92,10 @@ func (r *actionRepository) CreateTopic(ctx context.Context, answerID, conversati
 		return "", errors.New("repository/action_repository: " + err.Error())
 	}
 
+	if len(conversation.Turns) >= 3 {
+		return "", errors.New("conversation already created")
+	}
+
 	answer_prompt := infrastructure.ParseAnswer(answer.Answers)
 
 	curent_request := fmt.Sprintf(`Here is my answer \n
@@ -250,8 +254,6 @@ func (r *actionRepository) QuizAnswer(ctx context.Context, quizID string, answer
 
 	for index, quiz := range quizes.Questions {
 
-		fmt.Println(quiz.Answer, answer[index].Answer)
-
 		if quiz.Answer == answer[index].Answer {
 			score++
 		}
@@ -380,8 +382,6 @@ func (r *actionRepository) UploadForGemini(processedText string) ([]domain.Conve
 	}
 
 	gem_resp := infrastructure.ExtractGeminiResponse(resp)
-
-	fmt.Println(gem_resp)
 
 	conversation = append(conversation, domain.ConversationTurn{User: prompt, Gemini: gem_resp})
 

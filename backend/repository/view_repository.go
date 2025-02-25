@@ -16,6 +16,7 @@ type ViewRepository interface {
 	GetQuiz(ctx context.Context, quizID string) (domain.Quiz, error)
 	GetExplanation(ctx context.Context, explanationID string) (domain.Conversation, error)
 	GetSection(ctx context.Context, sectionID, userID string) (domain.Section, error)
+	SectionList(ctx context.Context, userID string) ([]domain.Section, error)
 }
 
 type viewRepository struct {
@@ -32,6 +33,32 @@ func NewViewController(db *mongo.Database) ViewRepository {
 		UserConversation: db.Collection("conversation"),
 		UserSections:     db.Collection("section"),
 	}
+}
+
+func (r *viewRepository) SectionList(ctx context.Context, userID string) ([]domain.Section, error) {
+	var sections []domain.Section
+
+	filter := bson.M{"created_by": userID}
+
+	cursor, err := r.UserSections.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var section domain.Section
+		if err := cursor.Decode(&section); err != nil {
+			return nil, err
+		}
+		sections = append(sections, section)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return sections, nil
 }
 
 func (r *viewRepository) GetTopic(ctx context.Context, conversationID string) (domain.TopicList, error) {
@@ -51,7 +78,7 @@ func (r *viewRepository) GetTopic(ctx context.Context, conversationID string) (d
 		return domain.TopicList{}, err
 	}
 
-	if len(conversation.Turns) < 2 {
+	if len(conversation.Turns) <= 2 {
 		return domain.TopicList{}, fmt.Errorf("no topic found")
 
 	}

@@ -4,6 +4,7 @@ import (
 	"github/chera/fix-it/domain"
 	"github/chera/fix-it/infrastructure"
 	usescases "github/chera/fix-it/usecases"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -50,7 +51,9 @@ func (u *UserController) Register(ctx *gin.Context) {
 	hashedPassword, err := infrastructure.HashPassword(user.Password)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// logging and also displaying for the user
+		log.Println("Error hashing password: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something Went Wrong Please Try again "})
 		return
 	}
 
@@ -59,6 +62,7 @@ func (u *UserController) Register(ctx *gin.Context) {
 	err = u.userUsecase.Register(ctx, user)
 
 	if err != nil {
+		log.Println("Error creating user: ", err)
 		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
@@ -69,18 +73,29 @@ func (u *UserController) Register(ctx *gin.Context) {
 
 func (u *UserController) Login(ctx *gin.Context) {
 	var user domain.User
-
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println(err.Error())
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input" + err.Error()})
 		return
 	}
 
-	token, err := u.userUsecase.Login(ctx, user)
+	userid, err := u.userUsecase.Login(ctx, user)
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println(err.Error())
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "User Don't Exist"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+	token, err := u.userUsecase.GenerateToken(userid)
+
+	if err != nil {
+		log.Println(err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something Went wrong Please try again"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"token":   token,
+		"message": "Logged In successfully",
+	})
 }

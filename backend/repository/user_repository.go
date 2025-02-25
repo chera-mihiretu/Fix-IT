@@ -63,6 +63,12 @@ func (r *userRepository) VerifyUser(ctx context.Context, email, token string) er
 
 func (r *userRepository) CreateUser(ctx context.Context, user domain.User) error {
 
+	_, err := r.GetUserByEmail(ctx, user.Email)
+
+	if err == nil {
+		return errors.New("user email already exist")
+	}
+
 	exists, err := r.IsUserExist(ctx, user.Username)
 
 	if err != nil {
@@ -70,7 +76,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) error
 	}
 
 	if exists {
-		return errors.New("user already exist")
+		return errors.New("username is taken please change username")
 	}
 
 	token, err := infrastructure.GenerateToken(user.Email)

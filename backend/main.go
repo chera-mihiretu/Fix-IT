@@ -9,10 +9,18 @@ import (
 	"github/chera/fix-it/repository"
 	"github/chera/fix-it/usecases"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// setting log flags
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetOutput(os.Stdout) // Optional: Output to terminal
+}
 
 func main() {
 
