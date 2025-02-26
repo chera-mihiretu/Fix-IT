@@ -61,7 +61,7 @@ func main() {
 		log.Fatalf("could not create appwrite client: %v", err)
 	}
 
-	fmt.Println("🚀 Fix-it server starting... Version 1.0.0")
+	fmt.Println("🚀 Fix-it server starting... Version 1.0.5")
 	userRepo := repository.NewUserRepository(my_database)
 	viewRepo := repository.NewViewController(my_database)
 	actionRepo := repository.NewActionRepository(my_database, gem_model, gem_context)
