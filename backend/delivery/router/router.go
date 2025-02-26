@@ -11,7 +11,7 @@ import (
 func SetUpRouter(usercontroller *controller.UserController, actioncontroller *controller.ActionController, viewcontroller *controller.ViewController) *gin.Engine {
 
 	router := gin.New()
-	router.Use(cors.Default())
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"}, // Frontend URL
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

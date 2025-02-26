@@ -34,6 +34,11 @@ func BuildPromptWithContext(userPrompt string, conversationHistory []domain.Conv
 
 func NewGeminiModel() (*genai.GenerativeModel, context.Context, error) {
 	ctx := context.Background()
+	gemModel, exist := os.LookupEnv("GEMINI_MODEL")
+
+	if !exist {
+		panic("GEMINI_MODEL not found")
+	}
 	gemApi, exist := os.LookupEnv("GEM_API")
 
 	if !exist {
@@ -46,7 +51,7 @@ func NewGeminiModel() (*genai.GenerativeModel, context.Context, error) {
 		panic(fmt.Sprintf("could not create gemini client: %v", err))
 	}
 
-	model := client.GenerativeModel("gemini-pro")
+	model := client.GenerativeModel(gemModel)
 
 	return model, ctx, nil
 
