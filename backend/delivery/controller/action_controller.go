@@ -27,6 +27,8 @@ func NewActionController(actionusecase usecases.ActionUsecase, viewusecase useca
 
 func (a *ActionController) UploadPDF(ctx *gin.Context) {
 
+	log.Println("Header", ctx.Request.Header)
+
 	file, header, err := ctx.Request.FormFile("file")
 	userID, exist := ctx.Get("user_id")
 

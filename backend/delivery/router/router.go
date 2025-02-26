@@ -13,11 +13,12 @@ func SetUpRouter(usercontroller *controller.UserController, actioncontroller *co
 	router := gin.New()
 	router.Use(cors.Default())
 	router.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
+		AllowOrigins:     []string{"http://localhost:3000"}, // Frontend URL
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "Origin", "X-Requested-With"},
 		AllowCredentials: true,
+		ExposeHeaders:    []string{"Content-Length"},
+		MaxAge:           12 * 60 * 60,
 	}))
 
 	user := router.Group("/u")
