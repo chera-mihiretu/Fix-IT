@@ -1,11 +1,15 @@
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
 interface User {
-  id: number;
   email: string;
   username: string;
+  academic: string;
+  age: number;
+  password: string;
 }
 
 interface AuthContextType {
@@ -20,51 +24,99 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 );
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const decodedUser: User = jwtDecode(token);
+        setUser(decodedUser);
+      } catch (error) {
+        console.error("Invalid token:", error);
+        localStorage.removeItem("token");
+      }
     }
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
-    const res = await fetch("http://localhost:5000/users");
-    const users = await res.json();
-    const existingUser = users.find(
-      (u: User & { password: string }) =>
-        u.email === email && u.password === password
-    );
+    try {
+      const res = await fetch("https://fix-it-afxt.onrender.com/u/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      if (!res.ok) {
+        throw new Error("Login failed");
+      }
+  
+      const { token } = await res.json();
 
-    if (existingUser) {
-      setUser(existingUser);
-      localStorage.setItem("user", JSON.stringify(existingUser));
-    } else {
-      alert("Invalid credentials");
+      const decodedUser: User = jwtDecode(token);
+  
+      setUser(decodedUser);
+      localStorage.setItem("token", token);
+  
+      router.push("/");
+    } catch (error) {
+      console.error(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
     }
   };
 
+  // const login = async (email: string, password: string) => {
+  //   try {
+  //     const res = await fetch("https://fix-it-afxt.onrender.com/u/login", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ email, password }),
+  //     });
+
+  //     if (!res.ok) {
+  //       throw new Error("Login failed");
+  //     }
+
+  //     const userData = await res.json();
+  //     setUser(userData);
+
+  //     localStorage.setItem("token", userData.token);
+
+  //     router.push("/");
+  //   } catch (error) {
+  //     console.error(
+  //       error instanceof Error ? error.message : "An unknown error occurred"
+  //     );
+  //   }
+  // };
+
   // Signup function
   const signup = async (userData: Omit<User, "id"> & { password: string }) => {
-    const res = await fetch("http://localhost:5000/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+    try {
+      const res = await fetch("https://fix-it-afxt.onrender.com/u/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
+      if (!res.ok) {
+        throw new Error("Signup failed");
+      }
 
-    if (res.ok) {
-      window.location.href = "/signin";  
-    } else {
-      alert("Signup failed");
+      router.push("/signin");
+    } catch (error) {
+      console.error(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
     }
   };
 
   // Logout function
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    router.push("/signin");
   };
 
   return (
@@ -73,5 +125,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
 

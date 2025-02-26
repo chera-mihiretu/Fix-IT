@@ -15,7 +15,7 @@ export default function Navbar() {
       <div className="flex space-x-6">
         {user ? (
           <>
-            <span className="text-gray-700">Hello, {user.username}!</span>
+            {/* <span className="text-gray-700">{user.username}!</span> */}
             <button
               onClick={logout}
               className="text-red-600 hover:underline font-bold "

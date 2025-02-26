@@ -9,10 +9,9 @@ export default function Page() {
   const [formData, setFormData] = useState({
     email: "",
     username: "",
-    academicLevel: "High School",
+    academic: "High School",
     age: "",
     password: "",
-    confirmPassword: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +19,7 @@ export default function Page() {
   };
 
   const handleChangeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData({ ...formData, academicLevel: e.target.value });
+    setFormData({ ...formData, academic: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,17 +30,12 @@ export default function Page() {
       !formData.email ||
       !formData.username ||
       !formData.age ||
-      !formData.password ||
-      !formData.confirmPassword
+      !formData.password
     ) {
       return alert("Please fill in all fields.");
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      return alert("Passwords do not match!");
-    }
-
-    await signup(formData);
+    await signup({ ...formData, age: Number(formData.age) });
   };
 
   return (
@@ -97,15 +91,14 @@ export default function Page() {
             <div className="flex items-center border rounded px-3 py-2">
               <span className="text-gray-500">📚</span>
               <select
-                name="academicLevel"
+                name="academic"
                 className="w-full outline-none ml-2"
-                value={formData.academicLevel}
+                value={formData.academic}
                 onChange={handleChangeSelect}
                 required
               >
                 <option>High School</option>
-                <option>Undergraduate</option>
-                <option>Graduate</option>
+                <option>Undergraduated</option>
               </select>
             </div>
           </div>
@@ -126,7 +119,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-gray-700 text-sm mb-1">Password</label>
             <div className="flex items-center border rounded px-3 py-2">
               <span className="text-gray-500">🔒</span>
@@ -136,24 +129,6 @@ export default function Page() {
                 className="w-full outline-none ml-2"
                 placeholder="Enter your password"
                 value={formData.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm mb-1">
-              Confirm Password
-            </label>
-            <div className="flex items-center border rounded px-3 py-2">
-              <span className="text-gray-500">🔒</span>
-              <input
-                type="password"
-                name="confirmPassword"
-                className="w-full outline-none ml-2"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
                 onChange={handleChange}
                 required
               />

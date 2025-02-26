@@ -1,30 +1,6 @@
 {
   "users": [
     {
-      "email": "john.doe@example.com",
-      "username": "johndoe",
-      "academicLevel": "Undergraduate",
-      "age": 22,
-      "password": "SecurePass123",
-      "id": "eebe"
-    },
-    {
-      "email": "sarah.smith@example.com",
-      "username": "sarahsmith",
-      "academicLevel": "Graduate",
-      "age": 26,
-      "password": "StrongPass456",
-      "id": "840a"
-    },
-    {
-      "email": "mike.jones@example.com",
-      "username": "mikejones",
-      "academicLevel": "High School",
-      "age": 17,
-      "password": "SafePass789",
-      "id": "fec9"
-    },
-    {
       "id": "deed",
       "email": "test@gmail.com",
       "username": "Test036",

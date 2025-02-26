@@ -8,7 +8,7 @@ export default function page() {
           Quiz Results & Analysis
         </h1>
         <p className="text-gray-600 text-center mb-6">
-          Great job completing the quiz! Here&appos;s a detailed breakdown of
+          Great job completing the quiz! Here&apos;s a detailed breakdown of
           your performance.
         </p>
 
