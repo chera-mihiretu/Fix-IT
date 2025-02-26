@@ -1,0 +1,15 @@
+
+/bin/
+/pkg/
+/build/
+*.exe
+*.out
+*.log
+
+
+.vscode/
+.idea/
+.DS_Store
+
+
+

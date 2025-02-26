@@ -1,0 +1,12 @@
+
+services:
+  go-app:
+    container_name: fix-it
+    image: fix-it
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env  # Load environment variables from the .env file
+    ports:
+      - "${PORT}:${PORT}"  # Map the host port to the container port
