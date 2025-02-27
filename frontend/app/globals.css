@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+:root {
+  --cosmic-blue: 42, 35, 86;
+  --ai-purple: 138, 79, 255;
+  --energy-yellow: 255, 215, 0;
+  --success-green: 76, 175, 80;
+  --background: 249, 250, 251;
+  --foreground: 17, 24, 39;
+}
+
+/* Magical Particle Animation */
+@keyframes float-particles {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+  50% { transform: translateY(-20px) rotate(180deg); opacity: 0.4; }
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgb(var(--ai-purple));
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.particle:nth-child(odd) {
+  background: rgb(var(--cosmic-blue));
+}
+
+/* Magical Gradients */
+.cosmic-gradient {
+  background: linear-gradient(135deg, 
+    rgb(var(--cosmic-blue)) 0%, 
+    rgb(var(--ai-purple)) 100%
+  );
+}
+
+.energy-gradient {
+  background: linear-gradient(135deg, 
+    rgb(var(--energy-yellow)) 0%, 
+    rgb(var(--success-green)) 100%
+  );
+}
+
+/* Enchanted Text Effects */
+.magical-text {
+  background: linear-gradient(135deg, 
+    rgb(var(--cosmic-blue)), 
+    rgb(var(--ai-purple)), 
+    rgb(var(--energy-yellow))
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glowing Effects */
+.glow-effect {
+  position: relative;
+}
+
+.glow-effect::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, 
+    rgba(var(--ai-purple), 0.5),
+    rgba(var(--cosmic-blue), 0.5)
+  );
+  filter: blur(15px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-effect:hover::after {
+  opacity: 1;
+}
+
+/* Component Styles */
+@layer components {
+  .nav-link {
+    @apply relative text-gray-700 hover:text-[rgb(var(--ai-purple))] transition-colors duration-200;
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-[rgb(var(--ai-purple))] transition-all duration-300;
+  }
+
+  .nav-link:hover::after {
+    @apply w-full;
+  }
+
+  .feature-card {
+    @apply bg-white/90 p-6 rounded-xl shadow-lg transition-all duration-500 hover:shadow-2xl border border-[rgba(var(--ai-purple),0.1)];
+    backdrop-filter: blur(10px);
+  }
+
+  .feature-card:hover {
+    border-color: rgb(var(--ai-purple));
+    transform: translateY(-5px) scale(1.02);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .btn-primary {
+    @apply px-8 py-3 rounded-full font-semibold text-white transition-all duration-500
+    cosmic-gradient hover:shadow-lg hover:shadow-[rgba(var(--ai-purple),0.3)]
+    transform hover:-translate-y-1;
+  }
+
+  .btn-secondary {
+    @apply px-8 py-3 rounded-full font-semibold transition-all duration-500
+    bg-white border-2 border-[rgb(var(--cosmic-blue))] text-[rgb(var(--cosmic-blue))]
+    transform hover:-translate-y-1 hover:shadow-lg hover:shadow-[rgba(var(--ai-purple),0.3)];
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .btn-secondary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+      rgb(var(--cosmic-blue)) 0%, 
+      rgb(var(--ai-purple)) 100%
+    );
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.5s ease;
+  }
+
+  .btn-secondary:hover {
+    @apply text-white border-transparent;
+  }
+
+  .btn-secondary:hover::before {
+    opacity: 1;
+  }
+
+  .stats-card {
+    @apply relative p-6 rounded-xl bg-white/90 backdrop-blur-md
+    border border-[rgba(var(--ai-purple),0.1)] transition-all duration-500;
+  }
+
+  .stats-card:hover {
+    @apply shadow-lg border-[rgb(var(--ai-purple))];
+    transform: translateY(-5px);
+  }
+
+  .step-card {
+    @apply relative p-8 rounded-xl bg-white/90 backdrop-blur-md
+    border border-[rgba(var(--ai-purple),0.1)] transition-all duration-500
+    hover:shadow-xl hover:border-[rgb(var(--ai-purple))] hover:-translate-y-2;
+  }
+}
+
+/* Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(3deg); }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Sparkle Effect */
+.sparkle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, rgb(var(--energy-yellow)) 0%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes sparkle {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* Scroll Progress Bar */
+.scroll-progress {
+  @apply fixed top-0 left-0 h-1 bg-[rgb(var(--ai-purple))] z-50;
+  transition: width 0.1s ease;
+}
+
