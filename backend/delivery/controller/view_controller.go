@@ -55,7 +55,6 @@ func (v *ViewController) ViewExplanation(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "No explanation found"})
 		return
 	}
-
 	ctx.JSON(http.StatusOK, infrastructure.ParseGeminiAnswer(explanation.Turns[1].Gemini))
 }
 

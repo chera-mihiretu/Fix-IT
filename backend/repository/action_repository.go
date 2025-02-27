@@ -189,6 +189,7 @@ func (r *actionRepository) CreateExplanation(ctx context.Context, explanationID 
     1. Indicate whether the answer is correct or incorrect.
     2. If the answer is incorrect, provide the correct answer AND a detailed explanation of *why* the provided answer is wrong.
     3. If the answer is correct, simply state "Correct".
+	4. Dont any text decorations like bold, italic, underline, etc.
 
     Example Format:
     Question Number: [question number]
@@ -353,6 +354,7 @@ func (r *actionRepository) UploadForGemini(processedText string) ([]domain.Conve
 
 
 			Dont include the example format in the output.
+			Dont any text decorations like bold, italic, underline, etc.
 
 			
 			Example Format: 
