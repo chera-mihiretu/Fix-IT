@@ -129,7 +129,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           if (data && data.message) {
             setSuccessMessage(data.message);
           } else {
-            setSuccessMessage('Registration successful!');
+            setSuccessMessage('Registration successful! Verify Your email');
           }
 
           // Clear form data
@@ -199,6 +199,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             localStorage.setItem('authToken', data.token);
             // Store the email for display
             localStorage.setItem('userEmail', formData.email);
+            
           }
 
           // Set success message and close modal
