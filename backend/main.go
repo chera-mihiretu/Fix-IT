@@ -31,10 +31,9 @@ func main() {
 		if err != nil {
 			log.Println("No .env file found, using Render environment variables")
 		}
-	}
-
-	if err != nil {
-		log.Fatal("could not load env file")
+		if err != nil {
+			log.Fatal("could not load env file")
+		}
 	}
 
 	// mongoDB connection and client creation
