@@ -97,8 +97,6 @@ func (r *viewRepository) GetSection(ctx context.Context, sectionID, userID strin
 		return domain.Section{}, err
 	}
 
-	fmt.Println("Section ID", objectID, "User ID", userID)
-
 	filter := bson.M{
 		"_id":        objectID,
 		"created_by": userID,

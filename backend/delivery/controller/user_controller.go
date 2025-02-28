@@ -6,6 +6,7 @@ import (
 	usescases "github/chera/fix-it/usecases"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,11 @@ func NewUserController(userusecase usescases.UserUsecase) *UserController {
 
 func (u *UserController) Verify(ctx *gin.Context) {
 	token := ctx.DefaultQuery("token", "")
+	front_url, exist := os.LookupEnv("FRONT_BASE_URL")
+	if !exist {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Front Url Token is required"})
+		return
+	}
 
 	err := u.userUsecase.Verify(ctx, token)
 
@@ -29,8 +35,8 @@ func (u *UserController) Verify(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	ctx.Redirect(http.StatusFound, front_url)
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "user verified"})
 }
 
 func (u *UserController) Register(ctx *gin.Context) {

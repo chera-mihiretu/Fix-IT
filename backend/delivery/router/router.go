@@ -13,7 +13,7 @@ func SetUpRouter(usercontroller *controller.UserController, actioncontroller *co
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"}, // Frontend URL
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization", "Origin", "X-Requested-With"},
 		AllowCredentials: true,

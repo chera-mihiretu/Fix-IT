@@ -2,7 +2,7 @@
 services:
   go-app:
     container_name: fix-it
-    image: fix-it
+    image: fix-it:1.0.7
     build:
       context: .
       dockerfile: Dockerfile
