@@ -12,6 +12,7 @@ interface Question {
   C: string;
   D: string;
   Answer: string;
+  [key: string]: string;
 }
 
 interface QuizData {
@@ -27,6 +28,27 @@ interface ExplanationItem {
   your_answer: string;
   explanation: string;
   correctness: boolean;
+}
+
+interface TopicItem {
+  Title: string;
+  Explanation: string;
+}
+
+interface TopicData {
+  section: {
+    Topics: TopicItem[];
+  };
+}
+
+interface Section {
+  ID: string;
+  SectionName: string;
+  PDFID: string;
+  QuestionsID: string;
+  ExplanationsID: string;
+  AnswersID: string;
+  CreatedBy: string;
 }
 
 export default function QuizPage() {
@@ -45,6 +67,16 @@ export default function QuizPage() {
   const [showFinalScore, setShowFinalScore] = useState(false);
   const [explanations, setExplanations] = useState<ExplanationItem[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [showTopics, setShowTopics] = useState(false);
+  const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [loadingSections, setLoadingSections] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+  const [loadingExplanations, setLoadingExplanations] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -54,6 +86,49 @@ export default function QuizPage() {
       setUserEmail(storedEmail);
     }
   }, []);
+
+  useEffect(() => {
+    fetchSections();
+  }, []);
+
+  const fetchSections = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      setLoadingSections(true);
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      const response = await fetch(`${baseUrl}/r/sections`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sections');
+      }
+
+      const data = await response.json();
+      setSections(data.sections || []); // Add default empty array if data.sections is undefined
+    } catch (err) {
+      console.error('Failed to fetch sections:', err);
+    } finally {
+      setLoadingSections(false);
+    }
+  };
+
+  const handleSectionClick = async (sectionId: string) => {
+    setSelectedSection(sectionId);
+    localStorage.setItem('lastSectionId', sectionId);
+    await fetchQuiz(sectionId);
+    
+    // Scroll to top of page
+    window.scrollTo({
+      top: 200,
+      behavior: 'smooth'
+    });
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -164,7 +239,7 @@ export default function QuizPage() {
 
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
       const response = await fetch(`${baseUrl}/r/quiz?section_id=${sectionId}`, {
-        headers: {
+        headers: {          
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
         }
@@ -175,16 +250,27 @@ export default function QuizPage() {
       }
 
       const data = await response.json();
-      // Ensure we only take 10 questions
-      const limitedQuestions = data.quiz.Questions.slice(0, 10);
-      setQuizData({
-        ...data.quiz,
-        Questions: limitedQuestions
-      });
-      setSelectedAnswers({});
-      setShowResults(false);
-      setCurrentQuestionIndex(0);
+      console.log('Quiz data received:', data);
+      
+      if (data.quiz.Taken) {
+        setShowModal(false); // Don't show modal, directly fetch topics
+        await fetchTopics();
+      } else {
+        // Show quiz for untaken quizzes
+        const limitedQuestions = data.quiz.Questions.slice(0, 10);
+        setQuizData({
+          ...data.quiz,
+          Questions: limitedQuestions
+        });
+        setSelectedAnswers({});
+        setShowResults(false);
+        setCurrentQuestionIndex(0);
+        setShowFinalScore(false);
+        setShowExplanations(false);
+        setShowTopics(false);
+      }
     } catch (err) {
+      console.error('Quiz fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch quiz');
     }
   };
@@ -237,8 +323,9 @@ export default function QuizPage() {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex === (quizData?.Questions.length || 1) - 1) {
+    if (currentQuestionIndex === (quizData?.Questions?.length || 1) - 1) {
       setShowFinalScore(true);
+      setShowResults(true);
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
@@ -246,6 +333,7 @@ export default function QuizPage() {
 
   const fetchExplanations = async () => {
     try {
+      setLoadingExplanations(true);
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('Please login to view explanations');
@@ -256,10 +344,38 @@ export default function QuizPage() {
         throw new Error('No section ID found. Please try uploading the document again.');
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-      const url = `${baseUrl}/r/explanation?section_id=${sectionId}`;
-      console.log('Fetching from URL:', url);
+      // Format answers for submission
+      const formattedAnswers = Object.entries(selectedAnswers).map(([index, answer]) => ({
+        question_no: parseInt(index) + 1,
+        answer: answer
+      }));
 
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      
+      // First submit the answers
+      console.log('Submitting answers:', formattedAnswers);
+      const submitResponse = await fetch(`${baseUrl}/a/quiz_answer?section_id=${sectionId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          answers: formattedAnswers
+        })
+      });
+
+      if (!submitResponse.ok) {
+        const errorText = await submitResponse.text();
+        console.error('Failed to submit answers:', errorText);
+        throw new Error('Failed to submit answers. Please try again.');
+      }
+
+      // Then fetch the explanations
+      console.log('Fetching explanations for section:', sectionId);
+      const url = `${baseUrl}/r/explanation?section_id=${sectionId}`;
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -268,23 +384,17 @@ export default function QuizPage() {
         }
       });
 
-      const rawResponse = await response.text();
-      console.log('Raw response:', rawResponse);
-
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
         throw new Error(`Failed to fetch explanations: ${response.status} ${response.statusText}`);
       }
 
-      let data;
-      try {
-        data = JSON.parse(rawResponse);
-        console.log('Parsed explanation data:', data);
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
-        throw new Error('Invalid response format from server');
-      }
+      const data = await response.json();
+      console.log('Received explanation data:', data);
 
       if (!Array.isArray(data)) {
+        console.error('Unexpected response format:', data);
         throw new Error('Unexpected response format: explanations should be an array');
       }
 
@@ -294,8 +404,97 @@ export default function QuizPage() {
     } catch (err) {
       console.error('Explanation fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch explanations');
-      // Keep the error visible for longer so user can read it
       setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoadingExplanations(false);
+    }
+  };
+
+  const fetchTopics = async () => {
+    try {
+      setLoadingTopics(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Please login to view topics');
+      }
+
+      const sectionId = localStorage.getItem('lastSectionId');
+      if (!sectionId) {
+        throw new Error('No section ID found');
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+      
+      // Try to create the topic, but don't fail if it already exists
+      try {
+        console.log('Creating topic for section:', sectionId);
+        const createTopicResponse = await fetch(`${baseUrl}/a/more?section_id=${sectionId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        // If the error is not "conversation already created", then throw it
+        if (!createTopicResponse.ok) {
+          const errorText = await createTopicResponse.text();
+          if (!errorText.includes('conversation already created')) {
+            console.error('Failed to create topic:', {
+              status: createTopicResponse.status,
+              statusText: createTopicResponse.statusText,
+              error: errorText
+            });
+            throw new Error('Failed to create topic');
+          }
+        }
+      } catch (createError) {
+        // Only rethrow if it's not the "conversation already created" error
+        if (createError instanceof Error && !createError.message.includes('conversation already created')) {
+          throw createError;
+        }
+      }
+
+      // Proceed with fetching topics regardless of creation status
+      console.log('Fetching topic content for section:', sectionId);
+      const topicResponse = await fetch(`${baseUrl}/r/topic?section_id=${sectionId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!topicResponse.ok) {
+        const errorText = await topicResponse.text();
+        console.error('Topic fetch failed:', {
+          status: topicResponse.status,
+          statusText: topicResponse.statusText,
+          error: errorText
+        });
+        throw new Error('Failed to fetch topics');
+      }
+
+      const topicData: TopicData = await topicResponse.json();
+      console.log('Topic content received:', topicData);
+      
+      setTopics(topicData.section.Topics);
+      setShowTopics(true);
+      setShowModal(false);
+      
+      // Scroll to top with offset for navbar
+      setTimeout(() => {
+        window.scrollTo({
+          top: 100, // Fixed offset for navbar
+          behavior: 'smooth'
+        });
+      }, 100); // Small delay to ensure content is rendered
+      
+    } catch (err) {
+      console.error('Topic fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch topics');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoadingTopics(false);
     }
   };
 
@@ -350,15 +549,20 @@ export default function QuizPage() {
       {/* Main Content */}
       <main className="min-h-screen pt-24">
         <div className="container mx-auto px-4 pb-20">
-          <motion.h1 
-            className="text-2xl md:text-3xl font-bold magical-text text-center mb-12"
+          <motion.div 
+            className="text-center max-w-3xl mx-auto mb-16"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            Executive Learning Platform
-          </motion.h1>
-          
+            <h1 className="text-4xl md:text-5xl font-bold magical-text mb-6">
+              Transform Your Learning Experience
+            </h1>
+            <p className="text-lg text-gray-600 mb-8">
+              Upload your study materials and let our AI create personalized quizzes to help you master any subject.
+            </p>
+          </motion.div>
+
           <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto">
             {/* Left Panel - PDF Upload and Info */}
             <motion.div 
@@ -513,6 +717,65 @@ export default function QuizPage() {
                   </li>
                 </ul>
               </div>
+
+              {/* Previous Sections Card */}
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-[rgba(var(--ai-purple),0.1)]">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-8 h-8 cosmic-gradient rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold magical-text">Previous Sections</h3>
+                </div>
+
+                {loadingSections ? (
+                  <div className="flex justify-center py-8">
+                    <div className="cosmic-gradient w-8 h-8 rounded-full animate-spin">
+                      <div className="w-full h-full rounded-full border-4 border-t-transparent"></div>
+                    </div>
+                  </div>
+                ) : sections && sections.length > 0 ? (
+                  <div className="space-y-3">
+                    {sections.map((section) => (
+                      <motion.button
+                        key={section.ID}
+                        onClick={() => handleSectionClick(section.ID)}
+                        className={`w-full p-4 rounded-xl border-2 transition-all ${
+                          selectedSection === section.ID
+                            ? 'border-[rgb(var(--ai-purple))] bg-[rgba(var(--ai-purple),0.05)]'
+                            : 'border-gray-200 hover:border-[rgb(var(--ai-purple))] hover:bg-gray-50'
+                        }`}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 cosmic-gradient rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h4 className="font-medium text-gray-800 truncate">
+                              {section.SectionName}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              Click to view content breakdown
+                            </p>
+                          </div>
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No previous sections found</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {/* Right Panel - Quiz Display */}
@@ -530,267 +793,185 @@ export default function QuizPage() {
                     </svg>
                   </div>
                   <h2 className="text-lg font-bold magical-text">
-                    {quizData ? 'Executive Assessment' : 'Ready for Assessment'}
+                    {selectedSection ? 'Content Breakdown' : 'Ready for Assessment'}
                   </h2>
                 </div>
               </div>
 
               <div className="p-4">
                 {quizData ? (
-                  <div className="space-y-8">
-                    {showFinalScore ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="p-4"
-                      >
-                        <div className="text-center space-y-4">
-                          <h3 className="text-xl font-bold magical-text">Assessment Complete! 🎉</h3>
-                          <div className="cosmic-gradient text-white rounded-full p-6 w-24 h-24 mx-auto flex items-center justify-center">
-                            <span className="text-2xl font-bold">{calculateScore().percentage}%</span>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm text-gray-700">
-                              You got <span className="font-bold text-[rgb(var(--ai-purple))]">{calculateScore().correct}</span> out of <span className="font-bold">{calculateScore().total}</span> questions correct
-                            </p>
-                          </div>
-
-                          {!showExplanations ? (
-                            <div className="flex justify-center space-x-3 mt-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6"
+                  >
+                    {!showTopics && !showExplanations && !showFinalScore && (
+                      <div className="space-y-6">
+                        <div className="bg-white p-6 rounded-xl border border-[rgba(var(--ai-purple),0.2)]">
+                          <h4 className="font-medium text-gray-800 mb-4">
+                            Question {currentQuestionIndex + 1} of {quizData.Questions.length}
+                          </h4>
+                          <p className="text-lg text-gray-700 mb-6">
+                            {quizData.Questions[currentQuestionIndex]?.Question}
+                          </p>
+                          <div className="space-y-3">
+                            {['A', 'B', 'C', 'D'].map((option) => (
                               <button
-                                onClick={fetchExplanations}
-                                className="btn-primary px-6 py-2 text-sm"
+                                key={option}
+                                onClick={() => handleAnswerSelect(currentQuestionIndex, option)}
+                                disabled={!!selectedAnswers[currentQuestionIndex]}
+                                className={`w-full p-4 rounded-xl border-2 transition-all ${
+                                  selectedAnswers[currentQuestionIndex] === option
+                                    ? 'border-[rgb(var(--ai-purple))] bg-[rgba(var(--ai-purple),0.05)]'
+                                    : 'border-gray-200 hover:border-[rgb(var(--ai-purple))] hover:bg-gray-50'
+                                }`}
                               >
-                                View Explanations
+                                <div className="flex items-center space-x-3">
+                                  <span className="font-medium">{option}:</span>
+                                  <span>{quizData.Questions[currentQuestionIndex]?.[option]}</span>
+                                </div>
                               </button>
+                            ))}
+                          </div>
+                          {feedback[currentQuestionIndex] && (
+                            <div className={`mt-4 p-4 rounded-xl ${
+                              feedback[currentQuestionIndex].correct 
+                                ? 'bg-green-50 text-green-700' 
+                                : 'bg-red-50 text-red-700'
+                            }`}>
+                              {feedback[currentQuestionIndex].message}
+                            </div>
+                          )}
+                          {selectedAnswers[currentQuestionIndex] && !showFinalScore && (
+                            <div className="mt-6 flex justify-end">
                               <button
-                                onClick={() => {
-                                  setQuizData(null);
-                                  setShowFinalScore(false);
-                                  setSelectedAnswers({});
-                                  setFeedback({});
-                                  setCurrentQuestionIndex(0);
-                                }}
-                                className="btn-secondary px-6 py-2 text-sm"
+                                onClick={handleNextQuestion}
+                                className="btn-primary px-6 py-2"
                               >
-                                Upload New PDF
+                                {currentQuestionIndex === (quizData.Questions.length - 1) 
+                                  ? 'View Results' 
+                                  : 'Next Question'}
                               </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {showFinalScore && !showExplanations && !showTopics && (
+                      <div className="text-center">
+                        <div className="mb-6">
+                          <div className="w-24 h-24 cosmic-gradient rounded-full mx-auto flex items-center justify-center mb-4">
+                            <span className="text-3xl font-bold text-white">
+                              {calculateScore().percentage}%
+                            </span>
+                          </div>
+                          <h3 className="text-2xl font-bold magical-text">
+                            Quiz Complete!
+                          </h3>
+                          <p className="text-gray-600 mt-2">
+                            You got {calculateScore().correct} out of {calculateScore().total} questions correct
+                          </p>
+                        </div>
+                        <button
+                          onClick={fetchExplanations}
+                          disabled={loadingExplanations}
+                          className="btn-primary px-8 py-3"
+                        >
+                          {loadingExplanations ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <span>Loading Explanations...</span>
                             </div>
                           ) : (
-                            <div className="mt-8">
-                              <div className="space-y-6">
-                                {explanations.map((item, index) => (
-                                  <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className={`p-4 rounded-xl border ${
-                                      item.correctness 
-                                        ? 'border-green-200 bg-green-50' 
-                                        : 'border-red-200 bg-red-50'
-                                    }`}
-                                  >
-                                    <div className="flex items-start space-x-4">
-                                      <div className={`p-2 rounded-lg ${
-                                        item.correctness 
-                                          ? 'bg-green-100' 
-                                          : 'bg-red-100'
-                                      }`}>
-                                        <span className="text-lg font-bold">
-                                          Q{item.question_number}
-                                        </span>
-                                      </div>
-                                      <div className="flex-1 space-y-2">
-                                        <div className="flex items-center space-x-4">
-                                          <div className="flex items-center space-x-2">
-                                            <span className="text-sm font-medium">Your Answer:</span>
-                                            <span className={`px-2 py-1 rounded ${
-                                              item.correctness 
-                                                ? 'bg-green-100 text-green-700' 
-                                                : 'bg-red-100 text-red-700'
-                                            }`}>
-                                              {item.your_answer}
-                                            </span>
-                                          </div>
-                                          {!item.correctness && (
-                                            <div className="flex items-center space-x-2">
-                                              <span className="text-sm font-medium">Correct Answer:</span>
-                                              <span className="px-2 py-1 rounded bg-green-100 text-green-700">
-                                                {item.correct_answer}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
-                                        {item.explanation && item.explanation !== "N/A" && (
-                                          <div className="text-sm text-gray-700 bg-white p-3 rounded-lg border border-gray-100">
-                                            <span className="font-medium">Explanation: </span>
-                                            {item.explanation}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                              <div className="mt-6 flex justify-center">
-                                <button
-                                  onClick={() => {
-                                    setQuizData(null);
-                                    setShowFinalScore(false);
-                                    setSelectedAnswers({});
-                                    setFeedback({});
-                                    setCurrentQuestionIndex(0);
-                                    setShowExplanations(false);
-                                  }}
-                                  className="btn-secondary px-6 py-2 text-sm"
-                                >
-                                  Upload New PDF
-                                </button>
-                              </div>
-                            </div>
+                            'View Explanations'
                           )}
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <>
-                        {/* Question Display */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                              Question {currentQuestionIndex + 1}
-                            </h3>
-                            <div className="bg-[rgb(var(--ai-purple))]/10 px-3 py-1 rounded-full">
-                              <span className="text-sm text-[rgb(var(--ai-purple))] font-medium">
-                                {currentQuestionIndex + 1} of {quizData?.Questions?.length || 10}
+                        </button>
+                      </div>
+                    )}
+                    {showExplanations && !showTopics && (
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-bold magical-text mb-4">Explanations</h3>
+                        {explanations.map((item, index) => (
+                          <div key={index} className="bg-white p-6 rounded-xl border border-[rgba(var(--ai-purple),0.2)]">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="font-medium text-gray-800">Question {item.question_number}</h4>
+                              <span className={`px-3 py-1 rounded-full text-sm ${
+                                item.correctness ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {item.correctness ? 'Correct' : 'Incorrect'}
                               </span>
                             </div>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full cosmic-gradient"
-                              initial={{ width: 0 }}
-                              animate={{ 
-                                width: `${((currentQuestionIndex + 1) / (quizData?.Questions?.length || 10)) * 100}%` 
-                              }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-
-                          {/* Question Content */}
-                          <div className="bg-gray-50 rounded-xl p-4 border border-[rgba(var(--ai-purple),0.1)]">
-                            <p className="text-base font-medium text-gray-800 mb-4">
-                              {quizData?.Questions[currentQuestionIndex]?.Question}
-                            </p>
-                            <div className="grid grid-cols-1 gap-3">
-                              {['A', 'B', 'C', 'D'].map((option) => {
-                                const currentQuestion = quizData?.Questions[currentQuestionIndex];
-                                const answerText = currentQuestion?.[option as keyof Question] || '';
-                                return (
-                                  <motion.button
-                                    key={option}
-                                    onClick={() => handleAnswerSelect(currentQuestionIndex, option)}
-                                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                                      selectedAnswers[currentQuestionIndex] === option
-                                        ? feedback[currentQuestionIndex]?.correct
-                                          ? 'border-green-500 bg-green-50'
-                                          : 'border-red-500 bg-red-50'
-                                        : 'border-gray-200 hover:border-[rgb(var(--ai-purple))] hover:bg-white'
-                                    }`}
-                                    disabled={selectedAnswers[currentQuestionIndex] !== undefined}
-                                    whileHover={{ scale: selectedAnswers[currentQuestionIndex] ? 1 : 1.01 }}
-                                    whileTap={{ scale: 0.99 }}
-                                  >
-                                    <div className="flex items-center space-x-3">
-                                      <span className={`w-8 h-8 rounded-lg border flex items-center justify-center font-medium ${
-                                        selectedAnswers[currentQuestionIndex] === option
-                                          ? feedback[currentQuestionIndex]?.correct
-                                            ? 'border-green-500 bg-green-100 text-green-700'
-                                            : 'border-red-500 bg-red-100 text-red-700'
-                                          : 'border-gray-300 text-gray-600'
-                                      }`}>
-                                        {option}
-                                      </span>
-                                      <span className="text-sm flex-1">{answerText}</span>
-                                    </div>
-                                  </motion.button>
-                                );
-                              })}
+                            <div className="space-y-2">
+                              <p className="text-gray-600">Your answer: {item.your_answer}</p>
+                              <p className="text-gray-600">Correct answer: {item.correct_answer}</p>
+                              <p className="text-gray-700 mt-4">{item.explanation}</p>
                             </div>
                           </div>
-
-                          {/* Feedback Card */}
-                          {feedback[currentQuestionIndex] && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className={`p-4 rounded-lg ${
-                                feedback[currentQuestionIndex].correct
-                                  ? 'bg-green-50 border border-green-200'
-                                  : 'bg-red-50 border border-red-200'
-                              }`}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`p-1.5 rounded-lg ${
-                                  feedback[currentQuestionIndex].correct
-                                    ? 'bg-green-100'
-                                    : 'bg-red-100'
-                                }`}>
-                                  {feedback[currentQuestionIndex].correct ? (
-                                    <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-4 h-4 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <p className={`text-sm flex-grow ${
-                                  feedback[currentQuestionIndex].correct
-                                    ? 'text-green-700'
-                                    : 'text-red-700'
-                                }`}>
-                                  {feedback[currentQuestionIndex].message}
-                                </p>
+                        ))}
+                        <div className="flex justify-center mt-6">
+                          <button
+                            onClick={fetchTopics}
+                            disabled={loadingTopics}
+                            className="btn-primary px-6 py-2"
+                          >
+                            {loadingTopics ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Loading Content...</span>
                               </div>
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {/* Navigation */}
-                        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-                          <button
-                            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                            disabled={currentQuestionIndex === 0}
-                            className="btn-secondary px-4 py-2 text-sm disabled:opacity-50 flex items-center space-x-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            <span>Previous</span>
-                          </button>
-                          <button
-                            onClick={handleNextQuestion}
-                            disabled={!selectedAnswers[currentQuestionIndex]}
-                            className="btn-primary px-4 py-2 text-sm disabled:opacity-50 flex items-center space-x-2"
-                          >
-                            <span>
-                              {currentQuestionIndex === (quizData?.Questions?.length || 10) - 1 
-                                ? 'Complete Quiz' 
-                                : 'Next Question'
-                              }
-                            </span>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                            ) : (
+                              'View Content Breakdown'
+                            )}
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
-                  </div>
+                    {showTopics && (
+                      <div className="space-y-4">
+                        {topics.map((topic, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="border border-[rgba(var(--ai-purple),0.2)] rounded-xl overflow-hidden"
+                          >
+                            <button
+                              onClick={() => setExpandedTopicIndex(expandedTopicIndex === index ? null : index)}
+                              className="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="font-medium text-gray-800">{topic.Title}</span>
+                              <motion.div
+                                animate={{ rotate: expandedTopicIndex === index ? 90 : 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <svg className="w-5 h-5 text-[rgb(var(--ai-purple))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </motion.div>
+                            </button>
+                            <AnimatePresence>
+                              {expandedTopicIndex === index && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="border-t border-[rgba(var(--ai-purple),0.1)]"
+                                >
+                                  <div className="p-6 bg-[rgba(var(--ai-purple),0.02)]">
+                                    <p className="text-gray-700 text-sm leading-relaxed">
+                                      {topic.Explanation}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
                 ) : (
                   <div className="text-center py-16">
                     <motion.div
@@ -822,10 +1003,10 @@ export default function QuizPage() {
                       </div>
                     </motion.div>
                     <h3 className="text-2xl font-bold magical-text mb-4">
-                      Ready for Your Assessment
+                      Select a Section
                     </h3>
                     <p className="text-lg text-gray-600">
-                      Upload your document to begin the executive learning experience
+                      Choose a section from the list to view its content breakdown
                     </p>
                   </div>
                 )}
@@ -833,6 +1014,50 @@ export default function QuizPage() {
             </motion.div>
           </div>
         </div>
+
+        {/* Auth Modal */}
+        {showAuthModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold magical-text">
+                  Sign In Required
+                </h3>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Please sign in to access the quiz features and upload PDF documents.
+              </p>
+              <div className="flex flex-col space-y-3">
+                <Link
+                  href="/"
+                  className="btn-primary w-full py-2 text-center"
+                  onClick={() => setShowAuthModal(false)}
+                >
+                  Sign In
+                </Link>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="btn-secondary w-full py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
       </main>
 
       {/* Footer */}

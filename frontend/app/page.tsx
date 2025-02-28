@@ -50,6 +50,7 @@ export default function Home() {
   const [showUpload, setShowUpload] = useState(false);
   const [lastSectionId, setLastSectionId] = useState<string>('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -89,6 +90,15 @@ export default function Home() {
     setLastSectionId(sectionId);
     setShowUpload(false);
     // You can add a success notification here
+  };
+
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isLoggedIn) {
+      window.location.href = '/quiz';
+    } else {
+      setShowAuthModal(true);
+    }
   };
 
   return (
@@ -292,6 +302,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center pt-24 md:pt-16 pb-20 px-4 overflow-hidden">
+        {/* Background with enhanced gradient */}
         <div className="absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=2070"
@@ -300,27 +311,52 @@ export default function Home() {
             className="object-cover opacity-5"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-gray-50"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-white via-white/95 to-[rgba(var(--ai-purple),0.1)]"></div>
         </div>
 
-        {/* Magical Sparkles */}
+        {/* Animated Particles */}
+        <div className="absolute inset-0 z-1">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full cosmic-gradient"
+              animate={{
+                scale: [1, 2, 1],
+                opacity: [0.3, 0.8, 0.3],
+                x: [0, Math.random() * 100, 0],
+                y: [0, Math.random() * 100, 0],
+              }}
+              transition={{
+                duration: 3 + i,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              style={{
+                left: `${30 + i * 20}%`,
+                top: `${20 + i * 25}%`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Magical Sparkles with enhanced positioning */}
         <motion.div
           className="sparkle"
-          style={{ top: "30%", left: "15%" }}
+          style={{ top: "20%", left: "15%" }}
           variants={sparkleVariants}
           initial="initial"
           animate="animate"
         />
         <motion.div
           className="sparkle"
-          style={{ top: "40%", right: "25%" }}
+          style={{ top: "40%", right: "20%" }}
           variants={sparkleVariants}
           initial="initial"
           animate="animate"
         />
         <motion.div
           className="sparkle"
-          style={{ bottom: "30%", left: "35%" }}
+          style={{ bottom: "25%", left: "35%" }}
           variants={sparkleVariants}
           initial="initial"
           animate="animate"
@@ -328,8 +364,9 @@ export default function Home() {
 
         <div className="container mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Content */}
             <motion.div 
-              className="space-y-6 max-w-2xl mx-auto text-center lg:text-left"
+              className="space-y-8 max-w-2xl mx-auto text-center lg:text-left"
               initial="initial"
               whileInView="animate"
               viewport={{ once: true }}
@@ -339,62 +376,104 @@ export default function Home() {
                 className="inline-block"
                 variants={fadeInUp}
               >
-                <span className="cosmic-gradient text-white px-4 py-2 rounded-full text-sm font-medium">
-                  AI-Powered Learning
+                <span className="cosmic-gradient text-white px-6 py-2 rounded-full text-sm font-medium shadow-lg backdrop-blur-sm border border-white/10">
+                  🚀 AI-Powered Learning Experience
                 </span>
               </motion.div>
+              
               <motion.h1 
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight magical-text whitespace-nowrap"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight"
                 variants={fadeInUp}
               >
-                Learn Smarter with AI
+                <span className="magical-text">Learn Smarter</span>
+                <br />
+                <span className="text-gray-700">with AI Magic</span>
               </motion.h1>
+              
               <motion.p 
-                className="text-base sm:text-lg md:text-xl text-gray-600 leading-relaxed"
+                className="text-lg sm:text-xl md:text-2xl text-gray-600 leading-relaxed max-w-xl"
                 variants={fadeInUp}
               >
-                Upload your study materials and let AI create personalized quizzes for you.
+                Transform your study materials into interactive quizzes. Let AI guide your learning journey to success.
               </motion.p>
+
               <motion.div 
-                className="flex flex-col sm:flex-row gap-4 pt-4 justify-center lg:justify-start"
+                className="flex flex-col sm:flex-row gap-6 pt-8 justify-center lg:justify-start items-center"
                 variants={fadeInUp}
               >
                 <motion.button 
-                  className="btn-primary glow-effect flex items-center justify-center"
+                  className="btn-primary glow-effect group flex items-center justify-center text-lg px-8 py-4 w-full sm:w-auto"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsAuthModalOpen(true)}
+                  onClick={handleButtonClick}
                 >
-                  <span>Unlock My Brain's Superpowers</span>
-                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <span className="relative z-10">Get Started</span>
+                  <motion.div
+                    className="ml-2 group-hover:translate-x-1 transition-transform"
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </motion.div>
                 </motion.button>
+
                 <motion.button 
-                  className="btn-secondary flex items-center justify-center"
+                  className="btn-secondary group flex items-center justify-center text-lg px-8 py-4 w-full sm:w-auto relative overflow-hidden"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => isLoggedIn ? setShowUpload(true) : setIsAuthModalOpen(true)}
+                  onClick={handleButtonClick}
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <motion.div
+                    className="absolute inset-0 cosmic-gradient opacity-0 group-hover:opacity-10 transition-opacity"
+                    initial={false}
+                  />
+                  <svg className="w-6 h-6 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  {isLoggedIn ? 'Upload PDF' : 'Watch the Magic'}
+                  Upload PDF
                 </motion.button>
+              </motion.div>
+
+              {/* Trust Indicators */}
+              <motion.div
+                variants={fadeInUp}
+                className="pt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 text-gray-500 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>100% Free to Start</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>No Credit Card Required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>24/7 Support</span>
+                </div>
               </motion.div>
             </motion.div>
 
+            {/* Right Content - Enhanced Animation */}
             <motion.div 
               className="relative lg:h-[600px] h-[300px] sm:h-[400px] mt-8 lg:mt-0"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
               <motion.div
                 animate={{
                   y: [0, -20, 0],
-                  rotate: [0, 3, 0]
+                  rotate: [0, 2, 0],
+                  scale: [1, 1.02, 1]
                 }}
                 transition={{
                   duration: 6,
@@ -403,29 +482,59 @@ export default function Home() {
                 }}
                 className="relative z-10"
               >
+                <div className="absolute -inset-4 cosmic-gradient opacity-20 blur-3xl rounded-full" />
                 <Image
                   src="/assets/hero.svg"
                   alt="AI Learning Platform"
                   width={600}
                   height={600}
-                  className="object-contain"
+                  className="object-contain relative z-10 drop-shadow-2xl"
                   priority
                 />
               </motion.div>
+
+              {/* Floating Elements */}
+              <motion.div
+                className="absolute top-1/4 -left-8 w-16 h-16 cosmic-gradient rounded-2xl"
+                animate={{
+                  y: [0, -10, 0],
+                  rotate: [0, 10, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div
+                className="absolute bottom-1/4 -right-8 w-12 h-12 bg-white/80 backdrop-blur-lg rounded-full shadow-xl"
+                animate={{
+                  y: [0, 10, 0],
+                  rotate: [0, -10, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
             </motion.div>
           </div>
         </div>
 
+        {/* Enhanced Wave Decoration */}
         <div className="absolute bottom-0 left-0 w-full overflow-hidden">
           <svg
-            className="relative block w-full h-[100px]"
+            className="relative block w-full h-[150px]"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 1200 120"
             preserveAspectRatio="none"
           >
             <path
               d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"
-              className="fill-gray-50"
+              className="fill-gray-50/80 backdrop-blur-sm"
             />
           </svg>
         </div>
@@ -686,6 +795,21 @@ export default function Home() {
           </div>
         </motion.div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => {
+          setShowAuthModal(false);
+          // Check auth status after modal closes
+          const token = localStorage.getItem('authToken');
+          const storedEmail = localStorage.getItem('userEmail');
+          if (token && storedEmail) {
+            setIsLoggedIn(true);
+            setUserEmail(storedEmail);
+          }
+        }} 
+      />
     </div>
   );
 }
