@@ -23,6 +23,7 @@ Fix It is an AI-driven application designed to help students improve their learn
 - **Progress Tracking**: Monitor your learning progress.
 - **Responsive Design**: Seamless experience across all devices.
 
+# 🎥 View Demo
 <div align="center">
     <img 
         src="/public/demo.gif" 
