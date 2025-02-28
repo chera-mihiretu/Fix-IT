@@ -26,7 +26,12 @@ func init() {
 func main() {
 
 	// Inviroment loading
-	err := godotenv.Load()
+	if os.Getenv("RENDER_EXTERNAL_HOSTNAME") == "" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("No .env file found, using Render environment variables")
+		}
+	}
 
 	if err != nil {
 		log.Fatal("could not load env file")
