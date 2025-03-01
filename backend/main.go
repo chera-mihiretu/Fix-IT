@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -25,15 +26,11 @@ func init() {
 func main() {
 
 	// Inviroment loading
-	// if os.Getenv("RENDER_EXTERNAL_HOSTNAME") == "" {
-	// 	err := godotenv.Load()
-	// 	if err != nil {
-	// 		log.Println("No .env file found, using Render environment variables")
-	// 	}
-	// 	if err != nil {
-	// 		log.Fatal("could not load env file")
-	// 	}
-	// }
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("could not load env file")
+	}
 
 	// mongoDB connection and client creation
 	client, err := infrastructure.NewMongoClient()
